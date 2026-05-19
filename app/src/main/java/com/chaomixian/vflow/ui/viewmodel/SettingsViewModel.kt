@@ -34,6 +34,7 @@ data class SettingsUiState(
     val autoEnableAccessibility: Boolean = false,
     val enableTypeFilter: Boolean = false,
     val allowPopupKeepScreenOn: Boolean = false,
+    val keepDeviceAwakeDuringWorkflow: Boolean = false,
     val hideFromRecents: Boolean = false,
     val allowShowOnLockScreen: Boolean = false,
     val defaultShellMode: String = "shizuku",
@@ -76,6 +77,7 @@ class SettingsViewModel : ViewModel() {
                 autoEnableAccessibility = prefs.getBoolean(KEY_AUTO_ENABLE_ACCESSIBILITY, false),
                 enableTypeFilter = prefs.getBoolean(KEY_ENABLE_TYPE_FILTER, false),
                 allowPopupKeepScreenOn = OverlayUiPreferences.isPopupKeepScreenOnAllowed(context),
+                keepDeviceAwakeDuringWorkflow = OverlayUiPreferences.isKeepDeviceAwakeDuringWorkflowEnabled(context),
                 hideFromRecents = prefs.getBoolean(KEY_HIDE_FROM_RECENTS, false),
                 allowShowOnLockScreen = OverlayUiPreferences.isShowOnLockScreenAllowed(context),
                 defaultShellMode = prefs.getString(
@@ -170,6 +172,11 @@ class SettingsViewModel : ViewModel() {
     fun setAllowPopupKeepScreenOn(context: Context, enabled: Boolean) = editPref(context) {
         putBoolean(OverlayUiPreferences.KEY_ALLOW_POPUP_KEEP_SCREEN_ON, enabled)
         _uiState.update { it.copy(allowPopupKeepScreenOn = enabled) }
+    }
+
+    fun setKeepDeviceAwakeDuringWorkflow(context: Context, enabled: Boolean) = editPref(context) {
+        putBoolean(OverlayUiPreferences.KEY_KEEP_DEVICE_AWAKE_DURING_WORKFLOW, enabled)
+        _uiState.update { it.copy(keepDeviceAwakeDuringWorkflow = enabled) }
     }
 
     fun setAllowShowOnLockScreen(context: Context, enabled: Boolean) = editPref(context) {

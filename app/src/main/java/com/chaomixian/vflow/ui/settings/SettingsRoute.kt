@@ -242,6 +242,9 @@ fun SettingsRoute(
             onSetAllowPopupKeepScreenOn = { enabled ->
                 settingsViewModel.setAllowPopupKeepScreenOn(context, enabled)
             },
+            onSetKeepDeviceAwakeDuringWorkflow = { enabled ->
+                settingsViewModel.setKeepDeviceAwakeDuringWorkflow(context, enabled)
+            },
             onSetHideFromRecents = { enabled ->
                 settingsViewModel.setHideFromRecents(context, enabled)
                 context.toast(

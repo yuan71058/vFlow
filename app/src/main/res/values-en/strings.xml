@@ -399,6 +399,9 @@
     <string name="settings_switch_allow_popup_keep_screen_on">Allow Popups to Keep Screen On</string>
     <string name="settings_switch_allow_popup_keep_screen_on_summary">Keep the screen awake while a popup is visible</string>
     <string name="settings_switch_allow_popup_keep_screen_on_desc">When enabled, vFlow popups such as input prompts and error dialogs prevent the system from turning the screen off automatically while they are visible. Disabled by default to reduce battery drain from unattended popups.</string>
+    <string name="settings_switch_keep_device_awake_during_workflow">Keep Device Awake During Workflow</string>
+    <string name="settings_switch_keep_device_awake_during_workflow_summary">Keep the CPU awake while a workflow is running</string>
+    <string name="settings_switch_keep_device_awake_during_workflow_desc">When enabled, vFlow automatically acquires a PARTIAL_WAKE_LOCK while a workflow is running, and releases it as soon as the execution finishes, is cancelled, or fails. Disabled by default to reduce background battery drain.</string>
     <string name="settings_switch_hide_from_recents">Hide from Recents</string>
     <string name="settings_switch_hide_from_recents_desc">When enabled, it will not appear in the recent tasks list.</string>
     <string name="settings_toast_hide_from_recents_enabled">Hidden from recents enabled</string>

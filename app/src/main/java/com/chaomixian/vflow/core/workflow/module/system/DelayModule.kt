@@ -1,7 +1,6 @@
 package com.chaomixian.vflow.core.workflow.module.system
 
 import android.content.Context
-import android.os.PowerManager
 import com.chaomixian.vflow.R
 import com.chaomixian.vflow.core.execution.ExecutionContext
 import com.chaomixian.vflow.core.module.*
@@ -27,11 +26,6 @@ class DelayModule : BaseModule() {
         private const val INPUT_DURATION = "duration"
         private const val INPUT_RANDOM_ENABLED = "randomOffsetEnabled"
         private const val INPUT_MAX_OFFSET = "maxOffset"
-        private const val WAKE_LOCK_THRESHOLD_MS = 2 * 60 * 1000L
-        private const val WAKE_LOCK_BUFFER_MS = 10_000L
-        private const val WAKE_LOCK_TAG = "vFlow:DelayModule"
-
-        internal fun shouldUseWakeLock(durationMs: Long): Boolean = durationMs >= WAKE_LOCK_THRESHOLD_MS
     }
 
     // 模块的唯一ID
@@ -220,29 +214,10 @@ class DelayModule : BaseModule() {
         // 如果延迟时间大于0，则执行实际的协程延迟
         if (finalDuration > 0) {
             onProgress(ProgressUpdate(String.format(appContext.getString(R.string.msg_vflow_device_delay_delaying), finalDuration)))
-            delayWithWakeLockIfNeeded(finalDuration)
+            delay(finalDuration)
         }
         // 返回成功结果
         return ExecutionResult.Success(mapOf("success" to VBoolean(true)))
-    }
-
-    private suspend fun delayWithWakeLockIfNeeded(durationMs: Long) {
-        if (!shouldUseWakeLock(durationMs)) {
-            delay(durationMs)
-            return
-        }
-
-        val powerManager = appContext.getSystemService(Context.POWER_SERVICE) as? PowerManager
-        val wakeLock = powerManager?.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, WAKE_LOCK_TAG)
-
-        try {
-            wakeLock?.acquire(durationMs + WAKE_LOCK_BUFFER_MS)
-            delay(durationMs)
-        } finally {
-            if (wakeLock?.isHeld == true) {
-                wakeLock.release()
-            }
-        }
     }
 
     private fun validateNonNegativeNumberInput(value: Any?): ValidationResult? {

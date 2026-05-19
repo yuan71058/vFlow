@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.KeyboardArrowRight
 import androidx.compose.material.icons.filled.Dataset
 import androidx.compose.material.icons.filled.AccessibilityNew
 import androidx.compose.material.icons.filled.AutoAwesome
+import androidx.compose.material.icons.filled.BedtimeOff
 import androidx.compose.material.icons.filled.BlurOn
 import androidx.compose.material.icons.filled.BugReport
 import androidx.compose.material.icons.filled.Cloud
@@ -98,6 +99,7 @@ data class SettingsScreenActions(
     val onSetAutoEnableAccessibility: (Boolean) -> Unit,
     val onSetEnableTypeFilter: (Boolean) -> Unit,
     val onSetAllowPopupKeepScreenOn: (Boolean) -> Unit,
+    val onSetKeepDeviceAwakeDuringWorkflow: (Boolean) -> Unit,
     val onSetHideFromRecents: (Boolean) -> Unit,
     val onSetDefaultShellMode: (String) -> Unit,
     val onOpenPermissionManager: () -> Unit,
@@ -212,6 +214,9 @@ fun SettingsScreen(
     val popupKeepScreenOnTitle = stringResource(R.string.settings_switch_allow_popup_keep_screen_on)
     val popupKeepScreenOnSubtitle = stringResource(R.string.settings_switch_allow_popup_keep_screen_on_summary)
     val popupKeepScreenOnInfo = stringResource(R.string.settings_switch_allow_popup_keep_screen_on_desc)
+    val workflowKeepAwakeTitle = stringResource(R.string.settings_switch_keep_device_awake_during_workflow)
+    val workflowKeepAwakeSubtitle = stringResource(R.string.settings_switch_keep_device_awake_during_workflow_summary)
+    val workflowKeepAwakeInfo = stringResource(R.string.settings_switch_keep_device_awake_during_workflow_desc)
     val hideRecentsTitle = stringResource(R.string.settings_switch_hide_from_recents)
     val hideRecentsSubtitle = stringResource(R.string.settings_switch_hide_from_recents_desc)
 
@@ -275,6 +280,7 @@ fun SettingsScreen(
         autoAccessibilityTitle, autoAccessibilitySubtitle, autoAccessibilityInfo,
         typeFilterTitle, typeFilterSubtitle, typeFilterInfo,
         popupKeepScreenOnTitle, popupKeepScreenOnSubtitle, popupKeepScreenOnInfo,
+        workflowKeepAwakeTitle, workflowKeepAwakeSubtitle, workflowKeepAwakeInfo,
         hideRecentsTitle, hideRecentsSubtitle
     ).any { matchesSearch(normalizedQuery, it) }
     val showPermissionsSection = listOf(
@@ -527,6 +533,16 @@ fun SettingsScreen(
                     checked = uiState.allowPopupKeepScreenOn,
                     onCheckedChange = actions.onSetAllowPopupKeepScreenOn,
                     infoText = popupKeepScreenOnInfo
+                )
+                NativeSwitchRow(
+                    title = workflowKeepAwakeTitle,
+                    subtitle = workflowKeepAwakeSubtitle,
+                    icon = Icons.Default.BedtimeOff,
+                    tone = languageTone(),
+                    position = SettingsGroupPosition.Middle,
+                    checked = uiState.keepDeviceAwakeDuringWorkflow,
+                    onCheckedChange = actions.onSetKeepDeviceAwakeDuringWorkflow,
+                    infoText = workflowKeepAwakeInfo
                 )
                 NativeSwitchRow(
                     title = hideRecentsTitle,

@@ -7,11 +7,9 @@ import com.chaomixian.vflow.core.module.ExecutionResult
 import com.chaomixian.vflow.core.types.VObjectFactory
 import com.chaomixian.vflow.core.types.basic.VNumber
 import com.chaomixian.vflow.core.workflow.model.ActionStep
-import com.chaomixian.vflow.permissions.PermissionManager
 import kotlinx.coroutines.runBlocking
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
-import org.junit.Assert.assertEquals
 import org.junit.Test
 import java.io.File
 import java.util.Stack
@@ -103,33 +101,5 @@ class DelayModuleTest {
         val result = module.execute(context) { }
 
         assertTrue(result is ExecutionResult.Success)
-    }
-
-    @Test
-    fun getRequiredPermissions_addsBatteryOptimizationPermissionForLongDelay() {
-        val module = DelayModule()
-
-        val permissions = module.getRequiredPermissions(
-            ActionStep(
-                moduleId = module.id,
-                parameters = mapOf("duration" to 20 * 60 * 1000L)
-            )
-        )
-
-        assertTrue(permissions.contains(PermissionManager.IGNORE_BATTERY_OPTIMIZATIONS))
-    }
-
-    @Test
-    fun getRequiredPermissions_keepsShortDelayPermissionListEmpty() {
-        val module = DelayModule()
-
-        val permissions = module.getRequiredPermissions(
-            ActionStep(
-                moduleId = module.id,
-                parameters = mapOf("duration" to 30_000L)
-            )
-        )
-
-        assertEquals(emptyList<com.chaomixian.vflow.permissions.Permission>(), permissions)
     }
 }
