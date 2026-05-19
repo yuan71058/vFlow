@@ -2737,6 +2737,13 @@
     <string name="summary_vflow_system_mobile_data">Mobile Data:</string>
     <string name="option_vflow_system_mobile_data_enable">Enable</string>
     <string name="option_vflow_system_mobile_data_disable">Disable</string>
+    <string name="error_vflow_system_mobile_data_param_error">Invalid parameter</string>
+    <string name="error_vflow_system_mobile_data_execution_failed">Execution failed</string>
+    <string name="msg_vflow_system_mobile_data_enabling">Enabling mobile data...</string>
+    <string name="msg_vflow_system_mobile_data_disabling">Disabling mobile data...</string>
+    <string name="msg_vflow_system_mobile_data_done">Mobile data %1$s completed</string>
+    <string name="error_vflow_system_mobile_data_unknown_action">Unknown action type: %1$s</string>
+    <string name="error_vflow_system_mobile_data_failed">Mobile data operation failed</string>
 
     <!-- vflow.interaction.get_current_activity -->
     <string name="module_vflow_interaction_get_current_activity_name">Get Current Activity</string>

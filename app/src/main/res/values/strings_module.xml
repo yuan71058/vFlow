@@ -2756,6 +2756,13 @@
     <string name="summary_vflow_system_mobile_data">移动数据:</string>
     <string name="option_vflow_system_mobile_data_enable">开启</string>
     <string name="option_vflow_system_mobile_data_disable">关闭</string>
+    <string name="error_vflow_system_mobile_data_param_error">参数错误</string>
+    <string name="error_vflow_system_mobile_data_execution_failed">执行失败</string>
+    <string name="msg_vflow_system_mobile_data_enabling">正在开启移动数据...</string>
+    <string name="msg_vflow_system_mobile_data_disabling">正在关闭移动数据...</string>
+    <string name="msg_vflow_system_mobile_data_done">移动数据%1$s完成</string>
+    <string name="error_vflow_system_mobile_data_unknown_action">未知的操作类型: %1$s</string>
+    <string name="error_vflow_system_mobile_data_failed">移动数据操作失败</string>
 
     <!-- vflow.interaction.get_current_activity -->
     <string name="module_vflow_interaction_get_current_activity_name">获取当前活动</string>
