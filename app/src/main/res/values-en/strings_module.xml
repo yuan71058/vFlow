@@ -608,6 +608,23 @@
     <string name="option_vflow_trigger_app_start_event_opened">Opened</string>
     <string name="option_vflow_trigger_app_start_event_closed">Closed</string>
 
+    <!-- vflow.trigger.app_switch -->
+    <string name="module_vflow_trigger_app_switch_name">App Switch</string>
+    <string name="module_vflow_trigger_app_switch_desc">Trigger workflow when the foreground app changes, with optional excluded apps</string>
+    <string name="param_vflow_trigger_app_switch_excluded_package_names_name">Excluded App Package List</string>
+    <string name="output_vflow_trigger_app_switch_package_name_name">Current Package Name</string>
+    <string name="output_vflow_trigger_app_switch_app_name_name">Current App Name</string>
+    <string name="output_vflow_trigger_app_switch_previous_package_name_name">Previous Package Name</string>
+    <string name="output_vflow_trigger_app_switch_previous_app_name_name">Previous App Name</string>
+    <string name="output_vflow_trigger_app_switch_class_name_name">Current Window Class Name</string>
+    <string name="summary_vflow_trigger_app_switch_prefix">Trigger on app switch, excluding</string>
+    <string name="summary_vflow_trigger_app_switch_no_exclusions">none</string>
+    <string name="summary_vflow_trigger_app_switch_picker_no_exclusions">No excluded apps, listens to all app switches</string>
+    <string name="summary_vflow_trigger_app_switch_picker_selected">Excluded: %1$s</string>
+    <string name="summary_vflow_trigger_two_apps">%1$s and %2$s</string>
+    <string name="summary_vflow_trigger_many_apps">%1$s and %2$d apps</string>
+    <string name="msg_vflow_trigger_app_switch_triggered">App switch triggered</string>
+
     <!-- vflow.trigger.app_package -->
     <string name="module_vflow_trigger_app_package_name">App Install/Remove/Update</string>
     <string name="module_vflow_trigger_app_package_desc">Trigger workflow when an app is installed, removed, or updated</string>

@@ -863,7 +863,9 @@
     <string name="text_open_uri">Open URI</string>
     <string name="label_target_app">Target App/Activity</string>
     <string name="label_target_apps">Target Apps</string>
+    <string name="label_excluded_apps">Excluded Apps</string>
     <string name="button_add_app">Add App</string>
+    <string name="button_add_excluded_app">Add Excluded App</string>
     <string name="text_not_recorded">Not recorded\nClick button below to record touch operations</string>
     <string name="text_time_09_00">09:00</string>
     <string name="text_scale_1_0">1.0x</string>

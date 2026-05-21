@@ -627,6 +627,23 @@
     <string name="option_vflow_trigger_app_start_event_opened">打开时</string>
     <string name="option_vflow_trigger_app_start_event_closed">关闭时</string>
 
+    <!-- vflow.trigger.app_switch -->
+    <string name="module_vflow_trigger_app_switch_name">应用切换</string>
+    <string name="module_vflow_trigger_app_switch_desc">当前台应用发生切换时触发工作流，可排除指定应用</string>
+    <string name="param_vflow_trigger_app_switch_excluded_package_names_name">排除应用包名列表</string>
+    <string name="output_vflow_trigger_app_switch_package_name_name">当前应用包名</string>
+    <string name="output_vflow_trigger_app_switch_app_name_name">当前应用名称</string>
+    <string name="output_vflow_trigger_app_switch_previous_package_name_name">上一应用包名</string>
+    <string name="output_vflow_trigger_app_switch_previous_app_name_name">上一应用名称</string>
+    <string name="output_vflow_trigger_app_switch_class_name_name">当前窗口类名</string>
+    <string name="summary_vflow_trigger_app_switch_prefix">应用切换时触发，排除</string>
+    <string name="summary_vflow_trigger_app_switch_no_exclusions">无</string>
+    <string name="summary_vflow_trigger_app_switch_picker_no_exclusions">未排除应用时监听所有应用切换</string>
+    <string name="summary_vflow_trigger_app_switch_picker_selected">已排除：%1$s</string>
+    <string name="summary_vflow_trigger_two_apps">%1$s 和 %2$s</string>
+    <string name="summary_vflow_trigger_many_apps">%1$s 等 %2$d 个应用</string>
+    <string name="msg_vflow_trigger_app_switch_triggered">应用切换已触发</string>
+
     <!-- vflow.trigger.app_package -->
     <string name="module_vflow_trigger_app_package_name">应用安装卸载更新</string>
     <string name="module_vflow_trigger_app_package_desc">当应用被安装、卸载或更新时触发工作流</string>
