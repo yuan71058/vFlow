@@ -320,6 +320,11 @@ class TriggerService : Service() {
                 if (latestWorkflow.wasEnabledBeforePermissionsLost) {
                     workflowManager.saveWorkflow(latestWorkflow.copy(wasEnabledBeforePermissionsLost = false))
                 }
+            } else if (shouldTreatAsTransientAccessibilityState(remainingPermissions)) {
+                DebugLogger.w(
+                    TAG,
+                    "工作流 '${latestWorkflow.name}' 的无障碍服务暂未连接，但系统设置中仍已启用；跳过自动禁用，等待服务恢复。"
+                )
             } else {
                 DebugLogger.w(
                     TAG,
@@ -333,6 +338,14 @@ class TriggerService : Service() {
                 )
             }
         }
+    }
+
+    private fun shouldTreatAsTransientAccessibilityState(
+        remainingPermissions: List<com.chaomixian.vflow.permissions.Permission>
+    ): Boolean {
+        return remainingPermissions.size == 1 &&
+            remainingPermissions.first().id == PermissionManager.ACCESSIBILITY.id &&
+            AccessibilityServiceStatus.isEnabledInSettings(this)
     }
 
     /**
