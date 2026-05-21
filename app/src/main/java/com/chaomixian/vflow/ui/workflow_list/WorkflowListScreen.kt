@@ -57,6 +57,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MenuDefaults
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
+import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
@@ -739,7 +740,11 @@ fun WorkflowCard(
                 if (hasAutoTriggers) {
                     Switch(
                         checked = workflow.isEnabled,
-                        onCheckedChange = onToggleEnabled
+                        onCheckedChange = onToggleEnabled,
+                        colors = workflowSwitchColors(
+                            colorfulCardsEnabled = colorfulCardsEnabled,
+                            visualColors = visualColors
+                        )
                     )
                 }
 
@@ -1308,19 +1313,67 @@ private fun WorkflowCardCompact(
                     verticalAlignment = Alignment.CenterVertically
                 ) {
                     if (colorfulCardsEnabled) {
-                        Surface(
-                            modifier = Modifier.size(40.dp),
-                            color = Color(visualColors.iconBackground),
-                            shape = RoundedCornerShape(14.dp)
-                        ) {
-                            Icon(
-                                painter = painterResource(
-                                    WorkflowVisuals.resolveIconDrawableRes(workflow.cardIconRes)
-                                ),
-                                contentDescription = null,
-                                tint = Color(visualColors.iconTint),
-                                modifier = Modifier.padding(9.dp)
-                            )
+                        Box {
+                            Surface(
+                                modifier = Modifier.size(40.dp),
+                                onClick = { menuExpanded = true },
+                                color = Color(visualColors.iconBackground),
+                                shape = RoundedCornerShape(14.dp)
+                            ) {
+                                Icon(
+                                    painter = painterResource(
+                                        WorkflowVisuals.resolveIconDrawableRes(workflow.cardIconRes)
+                                    ),
+                                    contentDescription = stringResource(R.string.workflow_item_more_options),
+                                    tint = Color(visualColors.iconTint),
+                                    modifier = Modifier.padding(9.dp)
+                                )
+                            }
+                            DropdownMenuPopup(
+                                expanded = menuExpanded,
+                                onDismissRequest = { menuExpanded = false }
+                            ) {
+                                DropdownMenuGroup(
+                                    shapes = MenuDefaults.groupShape(index = 0, count = 1),
+                                    modifier = Modifier
+                                        .width(IntrinsicSize.Max)
+                                        .widthIn(min = 156.dp, max = 236.dp),
+                                    containerColor = MenuDefaults.groupStandardContainerColor,
+                                ) {
+                                    Column(
+                                        modifier = Modifier.padding(vertical = 10.dp)
+                                    ) {
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 14.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            topMenuActions.forEach { item ->
+                                                WorkflowQuickActionButton(
+                                                    icon = item.icon,
+                                                    contentDescription = stringResource(item.textRes),
+                                                    onClick = {
+                                                        menuExpanded = false
+                                                        item.onClick()
+                                                    }
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        regularMenuActions.forEach { item ->
+                                            WorkflowFlatMenuItem(
+                                                text = stringResource(item.textRes),
+                                                icon = item.icon,
+                                                onClick = {
+                                                    menuExpanded = false
+                                                    item.onClick()
+                                                }
+                                            )
+                                        }
+                                    }
+                                }
+                            }
                         }
                         SpacerWidth(12.dp)
                     }
@@ -1331,56 +1384,58 @@ private fun WorkflowCardCompact(
                         maxLines = 2,
                         overflow = TextOverflow.Ellipsis,
                     )
-                    Box {
-                        IconButton(
-                            onClick = { menuExpanded = true },
-                        ) {
-                            Icon(
-                                painter = painterResource(R.drawable.ic_more_vert),
-                                contentDescription = stringResource(R.string.workflow_item_more_options),
-                            )
-                        }
-                        DropdownMenuPopup(
-                            expanded = menuExpanded,
-                            onDismissRequest = { menuExpanded = false }
-                        ) {
-                            DropdownMenuGroup(
-                                shapes = MenuDefaults.groupShape(index = 0, count = 1),
-                                modifier = Modifier
-                                    .width(IntrinsicSize.Max)
-                                    .widthIn(min = 156.dp, max = 236.dp),
-                                containerColor = MenuDefaults.groupStandardContainerColor,
+                    if (!colorfulCardsEnabled) {
+                        Box {
+                            IconButton(
+                                onClick = { menuExpanded = true },
                             ) {
-                                Column(
-                                    modifier = Modifier.padding(vertical = 10.dp)
+                                Icon(
+                                    painter = painterResource(R.drawable.ic_more_vert),
+                                    contentDescription = stringResource(R.string.workflow_item_more_options),
+                                )
+                            }
+                            DropdownMenuPopup(
+                                expanded = menuExpanded,
+                                onDismissRequest = { menuExpanded = false }
+                            ) {
+                                DropdownMenuGroup(
+                                    shapes = MenuDefaults.groupShape(index = 0, count = 1),
+                                    modifier = Modifier
+                                        .width(IntrinsicSize.Max)
+                                        .widthIn(min = 156.dp, max = 236.dp),
+                                    containerColor = MenuDefaults.groupStandardContainerColor,
                                 ) {
-                                    Row(
-                                        modifier = Modifier
-                                            .fillMaxWidth()
-                                            .padding(horizontal = 14.dp),
-                                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                    Column(
+                                        modifier = Modifier.padding(vertical = 10.dp)
                                     ) {
-                                        topMenuActions.forEach { item ->
-                                            WorkflowQuickActionButton(
+                                        Row(
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .padding(horizontal = 14.dp),
+                                            horizontalArrangement = Arrangement.spacedBy(12.dp)
+                                        ) {
+                                            topMenuActions.forEach { item ->
+                                                WorkflowQuickActionButton(
+                                                    icon = item.icon,
+                                                    contentDescription = stringResource(item.textRes),
+                                                    onClick = {
+                                                        menuExpanded = false
+                                                        item.onClick()
+                                                    }
+                                                )
+                                            }
+                                        }
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        regularMenuActions.forEach { item ->
+                                            WorkflowFlatMenuItem(
+                                                text = stringResource(item.textRes),
                                                 icon = item.icon,
-                                                contentDescription = stringResource(item.textRes),
                                                 onClick = {
                                                     menuExpanded = false
                                                     item.onClick()
                                                 }
                                             )
                                         }
-                                    }
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    regularMenuActions.forEach { item ->
-                                        WorkflowFlatMenuItem(
-                                            text = stringResource(item.textRes),
-                                            icon = item.icon,
-                                            onClick = {
-                                                menuExpanded = false
-                                                item.onClick()
-                                            }
-                                        )
                                     }
                                 }
                             }
@@ -1457,7 +1512,11 @@ private fun WorkflowCardCompact(
                 if (hasAutoTriggers) {
                     Switch(
                         checked = workflow.isEnabled,
-                        onCheckedChange = onToggleEnabled
+                        onCheckedChange = onToggleEnabled,
+                        colors = workflowSwitchColors(
+                            colorfulCardsEnabled = colorfulCardsEnabled,
+                            visualColors = visualColors
+                        )
                     )
                 }
                 if (isManualTrigger && !hasAutoTriggers) {
@@ -1533,6 +1592,25 @@ private fun WorkflowCardCompact(
             }
         }
     }
+}
+
+@Composable
+private fun workflowSwitchColors(
+    colorfulCardsEnabled: Boolean,
+    visualColors: WorkflowVisuals.CardColors,
+) = if (colorfulCardsEnabled) {
+    SwitchDefaults.colors(
+        checkedThumbColor = Color(visualColors.iconTint),
+        checkedTrackColor = Color(visualColors.accentBackground),
+        checkedBorderColor = Color(visualColors.accentBackground),
+        checkedIconColor = Color(visualColors.accentBackground),
+        uncheckedThumbColor = MaterialTheme.colorScheme.surface,
+        uncheckedTrackColor = Color(visualColors.chipBackground),
+        uncheckedBorderColor = Color(visualColors.iconBackground),
+        uncheckedIconColor = Color(visualColors.iconBackground),
+    )
+} else {
+    SwitchDefaults.colors()
 }
 
 @Composable
