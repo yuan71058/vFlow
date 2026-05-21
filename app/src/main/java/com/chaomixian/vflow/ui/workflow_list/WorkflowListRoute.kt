@@ -66,6 +66,7 @@ import kotlinx.coroutines.launch
 import kotlinx.coroutines.withContext
 import java.io.BufferedReader
 import java.io.InputStreamReader
+import java.io.OutputStream
 import java.text.Collator
 import java.text.SimpleDateFormat
 import java.util.ArrayList
@@ -284,9 +285,7 @@ fun WorkflowListRoute(
                 try {
                     val exportData = createWorkflowExportData(gson, workflow)
                     val jsonString = gson.toJson(exportData)
-                    context.contentResolver.openOutputStream(fileUri)?.use {
-                        it.write(jsonString.toByteArray())
-                    }
+                    writeTextToDocumentUri(context, fileUri, jsonString)
                     Toast.makeText(
                         context,
                         context.getString(R.string.toast_export_success),
@@ -316,9 +315,7 @@ fun WorkflowListRoute(
                         val workflowsWithMeta = workflows.map { createWorkflowExportData(gson, it) }
                         val exportData = mapOf("folder" to folder, "workflows" to workflowsWithMeta)
                         val jsonString = gson.toJson(exportData)
-                        context.contentResolver.openOutputStream(fileUri)?.use {
-                            it.write(jsonString.toByteArray())
-                        }
+                        writeTextToDocumentUri(context, fileUri, jsonString)
                         Toast.makeText(
                             context,
                             context.getString(R.string.toast_folder_export_success),
@@ -768,9 +765,31 @@ private fun backupAllWorkflowsToUri(
     val workflowsWithMeta = allWorkflows.map { createWorkflowExportData(gson, it) }
     val backupData = mapOf("workflows" to workflowsWithMeta, "folders" to allFolders)
     val jsonString = gson.toJson(backupData)
-    context.contentResolver.openOutputStream(fileUri)?.use {
-        it.write(jsonString.toByteArray())
+    writeTextToDocumentUri(context, fileUri, jsonString)
+}
+
+private fun writeTextToDocumentUri(context: Context, fileUri: Uri, text: String) {
+    val outputStream = openDocumentOutputStream(context, fileUri)
+    outputStream.use { stream ->
+        stream.write(text.toByteArray(Charsets.UTF_8))
+        stream.flush()
     }
+}
+
+private fun openDocumentOutputStream(context: Context, fileUri: Uri): OutputStream {
+    return resolveDocumentOutputStream(
+        openWithMode = { mode -> context.contentResolver.openOutputStream(fileUri, mode) },
+        openDefault = { context.contentResolver.openOutputStream(fileUri) }
+    )
+}
+
+internal fun resolveDocumentOutputStream(
+    openWithMode: (String) -> OutputStream?,
+    openDefault: () -> OutputStream?
+): OutputStream {
+    return openWithMode("wt")
+        ?: openDefault()
+        ?: throw IllegalStateException("Failed to open output stream")
 }
 
 private fun maybePromptWorkflowEnumMigration(
