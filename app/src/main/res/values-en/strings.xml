@@ -2,6 +2,7 @@
 <resources>
     <string name="app_name">vFlow</string>
     <string name="accessibility_service_description">vFlow service can perform various tasks through automated workflows.</string>
+    <string name="accessibility_service_description_disguise">vFlow service can perform various tasks through automated workflows. (Accessibility disguise enabled)</string>
 
     <string name="title_home">Home</string>
     <string name="title_workflows">Workflows</string>

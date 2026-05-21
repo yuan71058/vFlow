@@ -2,6 +2,7 @@
 <resources>
     <string name="app_name">vFlow</string>
     <string name="accessibility_service_description">vFlow 服务可以通过自动化流程执行多种任务。</string>
+    <string name="accessibility_service_description_disguise">vFlow 服务可以通过自动化流程执行多种任务。（已启用无障碍伪装）</string>
 
     <string name="title_home">首页</string>
     <string name="title_workflows">工作流</string>
