@@ -272,6 +272,7 @@ class ModuleHandler(
         ModuleCategories.TEMPLATE -> "Templates"
         ModuleCategories.UI -> "UI Control"
         ModuleCategories.FEISHU -> "Feishu"
+        ModuleCategories.APP_INTEGRATION -> "App Integrations"
         ModuleCategories.USER_MODULE -> "User Modules"
         else -> categoryId
     }
@@ -289,6 +290,7 @@ class ModuleHandler(
         ModuleCategories.TEMPLATE -> if (english) "Reusable workflow templates" else "可复用工作流模板"
         ModuleCategories.UI -> if (english) "UI construction and control" else "界面构建与控制"
         ModuleCategories.FEISHU -> if (english) "Feishu integrations" else "飞书集成"
+        ModuleCategories.APP_INTEGRATION -> if (english) "Third-party app integrations" else "第三方应用集成"
         ModuleCategories.USER_MODULE -> if (english) "User-installed modules" else "用户安装的模块"
         else -> categoryId
     }

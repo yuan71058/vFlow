@@ -10,6 +10,7 @@
     <string name="category_trigger">Triggers</string>
     <string name="category_template">Templates</string>
     <string name="category_feishu">Feishu</string>
+    <string name="category_app_integration">App Integrations</string>
     <string name="category_core">Core (Beta)</string>
     <string name="category_file">File</string>
     <string name="category_shizuku">Shizuku</string>
@@ -2144,6 +2145,28 @@
     <!-- vflow.system.wifi -->
     <string name="module_vflow_system_wifi_desc">Turn on, off, or toggle Wi-Fi state.</string>
     <string name="module_vflow_system_wifi_name">Wi-Fi Settings</string>
+    <string name="module_vflow_integration_flclash_name">FlClash</string>
+    <string name="module_vflow_integration_flclash_desc">Send a broadcast to FlClash to start, stop, or toggle proxy state.</string>
+    <string name="param_vflow_integration_flclash_action_name">Action</string>
+    <string name="option_vflow_integration_flclash_action_start">Start</string>
+    <string name="option_vflow_integration_flclash_action_stop">Stop</string>
+    <string name="option_vflow_integration_flclash_action_toggle">Toggle</string>
+    <string name="output_vflow_integration_flclash_success_name">Success</string>
+    <string name="output_vflow_integration_flclash_action_name">Action</string>
+    <string name="summary_vflow_integration_flclash_prefix">FlClash</string>
+    <string name="module_vflow_integration_clash_meta_name">Clash Meta</string>
+    <string name="module_vflow_integration_clash_meta_desc">Send a control intent to Clash Meta for Android to start, stop, or toggle proxy state.</string>
+    <string name="param_vflow_integration_clash_meta_action_name">Action</string>
+    <string name="option_vflow_integration_clash_meta_action_start">Start</string>
+    <string name="option_vflow_integration_clash_meta_action_stop">Stop</string>
+    <string name="option_vflow_integration_clash_meta_action_toggle">Toggle</string>
+    <string name="output_vflow_integration_clash_meta_success_name">Success</string>
+    <string name="output_vflow_integration_clash_meta_action_name">Action</string>
+    <string name="summary_vflow_integration_clash_meta_prefix">Clash Meta</string>
+    <string name="module_vflow_integration_ithome_check_in_name">IT Home Check-in</string>
+    <string name="module_vflow_integration_ithome_check_in_desc">Open IT Home and complete the daily check-in.</string>
+    <string name="output_vflow_integration_ithome_check_in_success_name">Success</string>
+    <string name="summary_vflow_integration_ithome_check_in">IT Home check-in</string>
     <string name="param_vflow_system_wifi_state_name">State</string>
     <string name="output_vflow_system_wifi_success_name">Success</string>
     <string name="summary_vflow_system_wifi_suffix">WiFi</string>

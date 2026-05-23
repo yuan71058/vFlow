@@ -10,6 +10,7 @@
     <string name="category_trigger">触发器</string>
     <string name="category_template">模板</string>
     <string name="category_feishu">飞书</string>
+    <string name="category_app_integration">应用集成</string>
     <string name="category_core">Core (Beta)</string>
     <string name="category_file">文件</string>
     <string name="category_shizuku">Shizuku</string>
@@ -2163,6 +2164,28 @@
     <!-- vflow.system.wifi -->
     <string name="module_vflow_system_wifi_desc">开启、关闭或切换 Wi-Fi 状态。</string>
     <string name="module_vflow_system_wifi_name">Wi-Fi 设置</string>
+    <string name="module_vflow_integration_flclash_name">FlClash</string>
+    <string name="module_vflow_integration_flclash_desc">向 FlClash 发送启动、停止或切换代理状态的广播。</string>
+    <string name="param_vflow_integration_flclash_action_name">操作</string>
+    <string name="option_vflow_integration_flclash_action_start">启动</string>
+    <string name="option_vflow_integration_flclash_action_stop">停止</string>
+    <string name="option_vflow_integration_flclash_action_toggle">切换</string>
+    <string name="output_vflow_integration_flclash_success_name">成功</string>
+    <string name="output_vflow_integration_flclash_action_name">Action</string>
+    <string name="summary_vflow_integration_flclash_prefix">FlClash</string>
+    <string name="module_vflow_integration_clash_meta_name">Clash Meta</string>
+    <string name="module_vflow_integration_clash_meta_desc">向 Clash Meta for Android 发送启动、停止或切换代理状态的控制 Intent。</string>
+    <string name="param_vflow_integration_clash_meta_action_name">操作</string>
+    <string name="option_vflow_integration_clash_meta_action_start">启动</string>
+    <string name="option_vflow_integration_clash_meta_action_stop">停止</string>
+    <string name="option_vflow_integration_clash_meta_action_toggle">切换</string>
+    <string name="output_vflow_integration_clash_meta_success_name">成功</string>
+    <string name="output_vflow_integration_clash_meta_action_name">Action</string>
+    <string name="summary_vflow_integration_clash_meta_prefix">Clash Meta</string>
+    <string name="module_vflow_integration_ithome_check_in_name">IT之家签到</string>
+    <string name="module_vflow_integration_ithome_check_in_desc">打开 IT之家并完成每日签到。</string>
+    <string name="output_vflow_integration_ithome_check_in_success_name">成功</string>
+    <string name="summary_vflow_integration_ithome_check_in">IT之家签到</string>
     <string name="param_vflow_system_wifi_state_name">状态</string>
     <string name="output_vflow_system_wifi_success_name">成功</string>
     <string name="summary_vflow_system_wifi_suffix">WiFi</string>

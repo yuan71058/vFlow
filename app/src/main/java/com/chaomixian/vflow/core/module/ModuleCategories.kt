@@ -26,6 +26,7 @@ object ModuleCategories {
     const val TEMPLATE = "template"
     const val UI = "ui"
     const val FEISHU = "feishu"
+    const val APP_INTEGRATION = "app_integration"
     const val USER_MODULE = "user_module"
 
     private val specs = listOf(
@@ -41,7 +42,8 @@ object ModuleCategories {
         ModuleCategorySpec(TEMPLATE, R.string.category_template, R.color.static_pill_color, 9, "模板"),
         ModuleCategorySpec(UI, R.string.category_ui, R.color.static_pill_color, 10, "UI 组件"),
         ModuleCategorySpec(FEISHU, R.string.category_feishu, R.color.category_feishu, 11, "飞书"),
-        ModuleCategorySpec(USER_MODULE, null, R.color.category_user_module, 12, "用户模块")
+        ModuleCategorySpec(APP_INTEGRATION, R.string.category_app_integration, R.color.category_app_integration, 12, "应用集成"),
+        ModuleCategorySpec(USER_MODULE, null, R.color.category_user_module, 13, "用户模块")
     )
 
     private val specsById = specs.associateBy { it.id }
@@ -67,6 +69,9 @@ object ModuleCategories {
         "UI Control" to UI,
         "飞书" to FEISHU,
         "Feishu" to FEISHU,
+        "应用集成" to APP_INTEGRATION,
+        "App Integration" to APP_INTEGRATION,
+        "App Integrations" to APP_INTEGRATION,
         "用户模块" to USER_MODULE
     )
 

@@ -6,6 +6,7 @@ import android.content.ContentValues.TAG
 import com.chaomixian.vflow.core.logging.DebugLogger
 import com.chaomixian.vflow.core.workflow.module.data.*
 import com.chaomixian.vflow.core.workflow.module.file.*
+import com.chaomixian.vflow.core.workflow.module.integration.*
 import com.chaomixian.vflow.core.workflow.module.interaction.*
 import com.chaomixian.vflow.core.workflow.module.logic.*
 import com.chaomixian.vflow.core.workflow.module.network.*
@@ -208,6 +209,11 @@ object ModuleRegistry {
         register(VibrationModule(), context)
         register(FlashlightModule(), context)
         register(GetBatteryStatusModule(), context)
+
+        // 应用集成
+        register(FlClashModule(), context)
+        register(ClashMetaModule(), context)
+        register(IThomeCheckInModule(), context)
 
         // Core (Beta) 模块
         // 网络控制组
