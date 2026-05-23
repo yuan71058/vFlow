@@ -103,7 +103,6 @@ object ModuleRegistry {
         register(AutoGLMModule(), context)
         register(FindTextUntilModule(), context)
         register(FindImageModule(), context)
-        register(OperitModule(), context)
         register(GetCurrentActivityModule(), context)
 
         // 逻辑控制
@@ -214,6 +213,11 @@ object ModuleRegistry {
         register(FlClashModule(), context)
         register(ClashMetaModule(), context)
         register(IThomeCheckInModule(), context)
+        register(AlipayShortcutsModule(), context)
+        register(WeChatShortcutsModule(), context)
+        register(ColorOSShortcutsModule(), context)
+        register(GeminiAssistantModule(), context)
+        register(OperitModule(), context)
 
         // Core (Beta) 模块
         // 网络控制组
@@ -247,10 +251,6 @@ object ModuleRegistry {
 
         // Shizuku 模块
         register(ShellCommandModule(), context)
-        register(AlipayShortcutsModule(), context)
-        register(WeChatShortcutsModule(), context)
-        register(ColorOSShortcutsModule(), context)
-        register(GeminiAssistantModule(), context)
 
         // Snippet 模板
         register(FindTextUntilSnippet(), context)

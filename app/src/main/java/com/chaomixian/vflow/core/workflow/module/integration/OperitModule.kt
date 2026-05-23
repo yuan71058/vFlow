@@ -1,5 +1,4 @@
-// 文件: main/java/com/chaomixian/vflow/core/workflow/module/interaction/OperitModule.kt
-package com.chaomixian.vflow.core.workflow.module.interaction
+package com.chaomixian.vflow.core.workflow.module.integration
 
 import android.content.Context
 import android.content.Intent
@@ -40,9 +39,9 @@ class OperitModule : BaseModule() {
         nameStringRes = R.string.module_vflow_interaction_operit_name,
         description = "与 Operit AI 助手交互：发送消息或触发工作流。",  // Fallback
         descriptionStringRes = R.string.module_vflow_interaction_operit_desc,
-        iconRes = R.drawable.rounded_smart_toy_24,
-        category = "界面交互",
-        categoryId = "interaction"
+        iconRes = R.drawable.ic_operit,
+        category = "应用集成",
+        categoryId = ModuleCategories.APP_INTEGRATION
     )
     override val aiMetadata = AiModuleMetadata(
         allowSavedWorkflow = false,
