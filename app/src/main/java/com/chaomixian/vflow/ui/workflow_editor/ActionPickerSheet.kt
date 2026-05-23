@@ -35,6 +35,19 @@ class ActionPickerSheet : BottomSheetDialogFragment() {
     var onActionSelected: ((ActionModule) -> Unit)? = null
     var onPasteClipboardClicked: (() -> Unit)? = null
 
+    private companion object {
+        private val FEATURED_MODULE_IDS = listOf(
+            "vflow.data.quick_view",
+            "vflow.interaction.screen_operation",
+            "vflow.variable.create",
+            "vflow.device.delay",
+            "vflow.logic.if.start",
+            "vflow.logic.do_while.start",
+            "vflow.shizuku.shell_command",
+            "vflow.integration.flclash"
+        )
+    }
+
     private lateinit var recyclerView: RecyclerView
     private lateinit var searchView: SearchView
     private lateinit var permissionChipGroup: ChipGroup
@@ -115,6 +128,12 @@ class ActionPickerSheet : BottomSheetDialogFragment() {
                     .filter { it.metadata.getResolvedCategoryId() != ModuleCategories.TRIGGER }
                 if (recentModules.isNotEmpty()) {
                     localizedModules[""] = recentModules
+                }
+
+                val featuredModules = FEATURED_MODULE_IDS.mapNotNull { ModuleRegistry.getModule(it) }
+                    .filter { it.metadata.getResolvedCategoryId() != ModuleCategories.TRIGGER }
+                if (featuredModules.isNotEmpty()) {
+                    localizedModules[requireContext().getString(R.string.label_featured_modules)] = featuredModules
                 }
             }
 
