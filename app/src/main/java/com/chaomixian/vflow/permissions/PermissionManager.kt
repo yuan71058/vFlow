@@ -4,6 +4,7 @@ package com.chaomixian.vflow.permissions
 import android.Manifest
 import android.app.AlarmManager
 import android.app.AppOpsManager
+import android.app.NotificationManager
 import android.content.Context
 import android.content.Intent
 import android.content.pm.PackageManager
@@ -108,6 +109,15 @@ object PermissionManager {
         type = PermissionType.SPECIAL,
         nameStringRes = R.string.permission_name_notification_listener,
         descriptionStringRes = R.string.permission_desc_notification_listener
+    )
+
+    val NOTIFICATION_POLICY = Permission(
+        id = Manifest.permission.ACCESS_NOTIFICATION_POLICY,
+        name = "勿扰访问权限",
+        description = "允许应用开启、关闭或切换系统免打扰模式。",
+        type = PermissionType.SPECIAL,
+        nameStringRes = R.string.permission_name_notification_policy,
+        descriptionStringRes = R.string.permission_desc_notification_policy
     )
 
     // 存储权限现在优先请求"所有文件访问权限"
@@ -227,7 +237,7 @@ object PermissionManager {
     val allKnownPermissions = listOf(
         CORE, CORE_ROOT,
         ACCESSIBILITY, NOTIFICATIONS, MICROPHONE, OVERLAY, NOTIFICATION_LISTENER_SERVICE,
-        STORAGE, SMS, READ_PHONE_STATE, BLUETOOTH, WRITE_SETTINGS, LOCATION, SHIZUKU,
+        NOTIFICATION_POLICY, STORAGE, SMS, READ_PHONE_STATE, BLUETOOTH, WRITE_SETTINGS, LOCATION, SHIZUKU,
         IGNORE_BATTERY_OPTIMIZATIONS, EXACT_ALARM, ROOT, USAGE_STATS
     )
 
@@ -409,6 +419,17 @@ object PermissionManager {
         }
     }
 
+    private val notificationPolicyStrategy = object : PermissionStrategy {
+        override fun isGranted(context: Context, permission: Permission): Boolean {
+            val notificationManager = context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            return notificationManager.isNotificationPolicyAccessGranted
+        }
+
+        override fun createRequestIntent(context: Context, permission: Permission): Intent {
+            return Intent(Settings.ACTION_NOTIFICATION_POLICY_ACCESS_SETTINGS)
+        }
+    }
+
     /** 精确闹钟策略 */
     private val exactAlarmStrategy = object : PermissionStrategy {
         override fun isGranted(context: Context, permission: Permission): Boolean =
@@ -574,6 +595,7 @@ object PermissionManager {
         WRITE_SETTINGS.id to writeSettingsStrategy,
         IGNORE_BATTERY_OPTIMIZATIONS.id to batteryStrategy,
         NOTIFICATION_LISTENER_SERVICE.id to notificationListenerStrategy,
+        NOTIFICATION_POLICY.id to notificationPolicyStrategy,
         EXACT_ALARM.id to exactAlarmStrategy,
         SHIZUKU.id to shizukuStrategy,
         ROOT.id to rootStrategy,

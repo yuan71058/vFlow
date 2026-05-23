@@ -390,8 +390,9 @@ internal object ChatAgentSkillRouter {
             title = "Device Settings Control",
             description = "Toggle or adjust direct device settings without navigating system UI.",
             instructions = """
-                Use direct system tools for wifi, bluetooth, brightness, mobile data, dark mode, and volume changes.
+                Use direct system tools for wifi, bluetooth, brightness, mobile data, dark mode, Do Not Disturb, and volume changes.
                 For dark/light theme requests, call the direct dark mode tool with the requested mode instead of opening Settings.
+                For Do Not Disturb requests, call the direct Do Not Disturb tool with on, off, or toggle instead of opening Settings.
                 Avoid opening Settings or Quick Settings when a direct tool can perform the change safely.
             """.trimIndent(),
             moduleIds = setOf(
@@ -404,6 +405,7 @@ internal object ChatAgentSkillRouter {
                 "vflow.system.brightness",
                 "vflow.system.mobile_data",
                 "vflow.system.darkmode",
+                "vflow.system.do_not_disturb",
                 "vflow.core.volume",
                 "vflow.core.volume_state",
             ),
@@ -424,6 +426,10 @@ internal object ChatAgentSkillRouter {
             "夜间模式",
             "暗色模式",
             "dark mode",
+            "免打扰",
+            "勿扰",
+            "do not disturb",
+            "dnd",
             "音量",
             "volume",
         ),

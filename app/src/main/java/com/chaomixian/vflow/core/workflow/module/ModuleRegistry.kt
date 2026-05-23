@@ -204,6 +204,7 @@ object ModuleRegistry {
         register(TextToSpeechModule(), context)
         register(CallPhoneModule(), context)
         register(DarkModeModule(), context)
+        register(DoNotDisturbModule(), context)
         register(VibrationModule(), context)
         register(FlashlightModule(), context)
 

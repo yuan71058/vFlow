@@ -2844,6 +2844,27 @@
     <string name="option_vflow_system_darkmode_light">Light</string>
     <string name="option_vflow_system_darkmode_toggle">Toggle</string>
 
+    <!-- vflow.system.do_not_disturb -->
+    <string name="module_vflow_system_do_not_disturb_name">Do Not Disturb</string>
+    <string name="module_vflow_system_do_not_disturb_desc">Turn Do Not Disturb on, off, or toggle it. Android 15+ uses vFlow\'s own DND rule; earlier Android versions use the global DND switch.</string>
+    <string name="param_vflow_system_do_not_disturb_action_name">Action</string>
+    <string name="output_vflow_system_do_not_disturb_success_name">Success</string>
+    <string name="output_vflow_system_do_not_disturb_enabled_name">Do Not Disturb Enabled</string>
+    <string name="option_vflow_system_do_not_disturb_toggle">Toggle</string>
+    <string name="option_vflow_system_do_not_disturb_on">On</string>
+    <string name="option_vflow_system_do_not_disturb_off">Off</string>
+    <string name="error_vflow_system_do_not_disturb_permission_missing">Do Not Disturb access missing</string>
+    <string name="error_vflow_system_do_not_disturb_permission_missing_desc">Allow vFlow to control Do Not Disturb mode in system settings.</string>
+    <string name="error_vflow_system_do_not_disturb_invalid_action">Invalid parameter</string>
+    <string name="error_vflow_system_do_not_disturb_invalid_action_detail">Unsupported Do Not Disturb action: %s</string>
+    <string name="error_vflow_system_do_not_disturb_set_failed">Failed to set Do Not Disturb</string>
+    <string name="error_vflow_system_do_not_disturb_rule_create_failed">Unable to create vFlow automatic Do Not Disturb rule</string>
+    <string name="error_vflow_system_do_not_disturb_unknown">Unknown error occurred</string>
+    <string name="msg_vflow_system_do_not_disturb_setting">Setting Do Not Disturb: %1$s...</string>
+    <string name="msg_vflow_system_do_not_disturb_completed">Do Not Disturb updated</string>
+    <string name="msg_vflow_system_do_not_disturb_rule_enabled">vFlow automatic Do Not Disturb rule enabled</string>
+    <string name="msg_vflow_system_do_not_disturb_rule_disabled">vFlow automatic Do Not Disturb rule disabled</string>
+
     <!-- vflow.system.screen_rotation -->
     <string name="module_vflow_system_screen_rotation_name">Screen Rotation</string>
     <string name="module_vflow_system_screen_rotation_desc">Control auto-rotate or lock the screen orientation.</string>

@@ -831,6 +831,7 @@ Block structure rules:
             "vflow.system.wake_and_unlock_screen",
             "vflow.system.sleep_screen",
             "vflow.system.darkmode",
+            "vflow.system.do_not_disturb",
             "vflow.device.vibration",
             "vflow.device.flashlight",
             "vflow.device.delay",

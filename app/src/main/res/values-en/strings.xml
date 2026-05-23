@@ -1165,6 +1165,8 @@
     <string name="permission_desc_overlay">Allows the app to display input boxes and other windows while running in the background, essential for complex automation flows.</string>
     <string name="permission_name_notification_listener">Notification Listener</string>
     <string name="permission_desc_notification_listener">Allows the app to read and manipulate status bar notifications, used for notification triggers and notification management.</string>
+    <string name="permission_name_notification_policy">Do Not Disturb Access</string>
+    <string name="permission_desc_notification_policy">Allows the app to turn Android Do Not Disturb mode on, off, or toggle it.</string>
     <string name="permission_name_storage">Storage Access</string>
     <string name="permission_desc_storage">Allows the app to read and write scripts and resource files in /sdcard/vFlow directory.</string>
     <string name="permission_name_sms">SMS Permission</string>
