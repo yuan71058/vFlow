@@ -2,17 +2,24 @@
 package com.chaomixian.vflow.core.workflow.module.core
 
 import android.content.Context
+import android.util.TypedValue
+import android.view.Gravity
 import android.view.LayoutInflater
 import android.view.View
 import android.view.ViewGroup
 import android.widget.Button
+import android.widget.ImageButton
+import android.widget.LinearLayout
 import android.widget.TextView
 import androidx.core.view.isVisible
 import com.chaomixian.vflow.R
 import com.chaomixian.vflow.core.module.CustomEditorViewHolder
 import com.chaomixian.vflow.core.module.ModuleUIProvider
+import com.chaomixian.vflow.core.module.isMagicVariable
+import com.chaomixian.vflow.core.module.isNamedVariable
 import com.chaomixian.vflow.core.workflow.model.ActionStep
 import com.chaomixian.vflow.services.VFlowCoreBridge
+import com.chaomixian.vflow.ui.workflow_editor.PillRenderer
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.button.MaterialButtonToggleGroup
 import com.google.android.material.slider.Slider
@@ -64,6 +71,8 @@ class CoreVolumeModuleUIProvider : ModuleUIProvider {
         val systemConfig: StreamConfig
         val alarmConfig: StreamConfig
         val refreshButton: Button
+        var onMagicVariableRequested: ((String) -> Unit)? = null
+        var currentParameters: Map<String, Any?> = emptyMap()
 
         init {
             musicConfig = StreamConfig(
@@ -149,7 +158,10 @@ class CoreVolumeModuleUIProvider : ModuleUIProvider {
     ): CustomEditorViewHolder {
         val view = LayoutInflater.from(context).inflate(R.layout.partial_volume_editor, parent, false)
         val holder = ViewHolder(view)
+        holder.onMagicVariableRequested = onMagicVariableRequested
+        holder.currentParameters = currentParameters
         val inputsById = CoreVolumeModule().getInputs().associateBy { it.id }
+        val dp = context.resources.displayMetrics.density
 
         val configs = listOf(
             holder.musicConfig,
@@ -163,6 +175,7 @@ class CoreVolumeModuleUIProvider : ModuleUIProvider {
         for (config in configs) {
             val paramActionId = "${config.streamName}_action"
             val paramValueId = "${config.streamName}_value"
+            val inputDef = inputsById[paramValueId]
 
             // 恢复操作类型
             val rawAction = currentParameters[paramActionId] as? String ?: CoreVolumeModule.ACTION_KEEP
@@ -174,10 +187,72 @@ class CoreVolumeModuleUIProvider : ModuleUIProvider {
                 else -> config.btnKeep.isChecked = true
             }
 
-            // 恢复音量值
-            val value = (currentParameters[paramValueId] as? Number)?.toInt() ?: 50
-            config.slider.value = value.toFloat()
-            config.valueText.text = value.toString()
+            // 检查是否为魔法变量/命名变量引用
+            val rawValue = currentParameters[paramValueId]?.toString()
+            val isVariable = rawValue.isMagicVariable() || rawValue.isNamedVariable()
+
+            // 重建滑块容器：水平布局 [valueArea(weight=1)] [magicButton(右侧)]
+            val container = config.sliderContainer as LinearLayout
+            container.removeAllViews()
+            container.orientation = LinearLayout.HORIZONTAL
+            container.gravity = Gravity.CENTER_VERTICAL
+
+            // valueArea：左侧，占据剩余空间
+            val valueArea = LinearLayout(context).apply {
+                orientation = LinearLayout.VERTICAL
+                layoutParams = LinearLayout.LayoutParams(0, LinearLayout.LayoutParams.WRAP_CONTENT, 1f)
+            }
+            container.addView(valueArea)
+
+            // 魔法变量按钮：右侧，固定宽度，样式与标准编辑器一致
+            if (inputDef?.acceptsMagicVariable == true) {
+                val magicBtn = ImageButton(context).apply {
+                    setImageResource(R.drawable.rounded_dataset_24)
+                    val tv = TypedValue()
+                    context.theme.resolveAttribute(android.R.attr.selectableItemBackgroundBorderless, tv, true)
+                    setBackgroundResource(tv.resourceId)
+                    setColorFilter(com.google.android.material.color.MaterialColors.getColor(this, android.R.attr.colorPrimary))
+                    layoutParams = LinearLayout.LayoutParams(
+                        (48 * dp).toInt(), (48 * dp).toInt()
+                    )
+                    setOnClickListener { onMagicVariableRequested?.invoke(paramValueId) }
+                }
+                container.addView(magicBtn)
+            }
+
+            if (isVariable) {
+                // 变量模式：药丸显示变量名称，点击可重新选择
+                val pill = LayoutInflater.from(context).inflate(R.layout.magic_variable_pill, valueArea, false)
+                val displayName = PillRenderer.resolveDisplayName(context, rawValue!!, allSteps ?: emptyList())
+                pill.findViewById<TextView>(R.id.pill_text).text = displayName
+                pill.setOnClickListener { onMagicVariableRequested?.invoke(paramValueId) }
+                valueArea.addView(pill)
+            } else {
+                // 静态模式：Slider + 数值标签
+                val slider = Slider(context).apply {
+                    valueFrom = 0f; valueTo = 100f; stepSize = 1f
+                    value = ((currentParameters[paramValueId] as? Number)?.toInt() ?: 50).toFloat()
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.MATCH_PARENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    )
+                }
+                val valueLabel = TextView(context).apply {
+                    text = slider.value.toInt().toString()
+                    setTextAppearance(com.google.android.material.R.style.TextAppearance_Material3_BodySmall)
+                    layoutParams = LinearLayout.LayoutParams(
+                        LinearLayout.LayoutParams.WRAP_CONTENT,
+                        LinearLayout.LayoutParams.WRAP_CONTENT
+                    ).apply { gravity = Gravity.CENTER }
+                }
+                valueArea.addView(slider)
+                valueArea.addView(valueLabel)
+
+                slider.addOnChangeListener { _, value, _ ->
+                    valueLabel.text = value.toInt().toString()
+                    onParametersChanged()
+                }
+            }
 
             // 初始化滑块显示状态
             updateSliderVisibility(config)
@@ -186,16 +261,9 @@ class CoreVolumeModuleUIProvider : ModuleUIProvider {
             val toggleGroup = config.btnKeep.parent as MaterialButtonToggleGroup
             toggleGroup.addOnButtonCheckedListener { _, checkedId, isChecked ->
                 if (isChecked) {
-                    // 根据 checkedId 判断是否选中了"设置"按钮
                     config.sliderContainer.isVisible = (checkedId == config.btnSet.id)
                     onParametersChanged()
                 }
-            }
-
-            // 监听滑块变化
-            config.slider.addOnChangeListener { _, value, _ ->
-                config.valueText.text = value.toInt().toString()
-                onParametersChanged()
             }
         }
 
@@ -209,7 +277,6 @@ class CoreVolumeModuleUIProvider : ModuleUIProvider {
                     if (volumes != null) {
                         // 将实际音量转换为百分比显示
                         val musicPercent = actualVolumeToPercent("music", volumes.musicCurrent)
-                        val musicMax = 100
                         holder.musicConfig.currentText.text = "${musicPercent}%"
 
                         val notificationPercent = actualVolumeToPercent("notification", volumes.notificationCurrent)
@@ -261,7 +328,20 @@ class CoreVolumeModuleUIProvider : ModuleUIProvider {
             }
 
             params[actionParamId] = action
-            params[valueParamId] = config.slider.value.toInt()
+
+            // 根据 valueArea 内容读取值
+            val container = config.sliderContainer as LinearLayout
+            // 子 View 结构: [valueArea, magicButton] — valueArea 是第一个子 View
+            val valueArea = container.getChildAt(0) as? LinearLayout
+            val firstChild = valueArea?.getChildAt(0)
+            when (firstChild) {
+                is Slider -> params[valueParamId] = firstChild.value.toInt()
+                is LinearLayout -> {
+                    // 药丸模式：保持原始变量引用
+                    val original = h.currentParameters[valueParamId]
+                    if (original != null) params[valueParamId] = original
+                }
+            }
         }
 
         return params

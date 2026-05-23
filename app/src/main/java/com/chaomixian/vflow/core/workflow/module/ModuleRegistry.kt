@@ -264,6 +264,7 @@ object ModuleRegistry {
         register(UiInputModule(), context)
         register(UiButtonModule(), context)
         register(UiSwitchModule(), context)
+        register(ScreenFlashModule(), context)
 
         // 交互逻辑 (事件监听 / 更新 / 关闭 / 获取值)
         register(OnUiEventModule(), context)

@@ -3216,5 +3216,20 @@
     <string name="param_vflow_ui_switch_trigger">Toggle trigger</string>
     <string name="param_vflow_ui_content">Content</string>
     <string name="param_vflow_ui_content_optional">Content (optional)</string>
+
+    <!-- vflow.ui.screen_flash -->
+    <string name="module_vflow_ui_screen_flash_name">Screen Flash</string>
+    <string name="module_vflow_ui_screen_flash_desc">Show a fullscreen color flash on the screen as a visual cue.</string>
+    <string name="param_vflow_ui_screen_flash_color_name">Color</string>
+    <string name="param_vflow_ui_screen_flash_fade_in_name">Fade-in duration (ms)</string>
+    <string name="param_vflow_ui_screen_flash_hold_name">Hold duration (ms)</string>
+    <string name="param_vflow_ui_screen_flash_fade_out_name">Fade-out duration (ms)</string>
+    <string name="param_vflow_ui_screen_flash_flash_count_name">Flash count</string>
+    <string name="param_vflow_ui_screen_flash_interval_name">Flash interval (ms)</string>
+    <string name="output_vflow_ui_screen_flash_success_name">Success</string>
+    <string name="error_vflow_ui_screen_flash_invalid_color">Invalid color value</string>
+    <string name="error_vflow_ui_screen_flash_invalid_flash_count">Flash count must be greater than 0</string>
+    <string name="msg_vflow_ui_screen_flash_showing">Showing screen flash...</string>
+
     <string name="summary_vflow_core_set_nfc">NFC</string>
 </resources>

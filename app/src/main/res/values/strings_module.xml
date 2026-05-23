@@ -2322,6 +2322,24 @@
     <string name="option_vflow_ui_interaction_update_visible_show">显示</string>
     <string name="option_vflow_ui_interaction_update_visible_unchanged">不变</string>
 
+    <!-- vflow.ui.screen_flash -->
+    <string name="module_vflow_ui_screen_flash_name">屏幕闪烁</string>
+    <string name="module_vflow_ui_screen_flash_desc">在屏幕上显示一个全屏颜色闪烁效果，用于视觉提示。</string>
+    <string name="param_vflow_ui_screen_flash_color_name">颜色</string>
+    <string name="param_vflow_ui_screen_flash_fade_in_name">淡入时长(ms)</string>
+    <string name="param_vflow_ui_screen_flash_hold_name">持续时长(ms)</string>
+    <string name="param_vflow_ui_screen_flash_fade_out_name">淡出时长(ms)</string>
+    <string name="param_vflow_ui_screen_flash_flash_count_name">闪烁次数</string>
+    <string name="param_vflow_ui_screen_flash_interval_name">闪烁间隔(ms)</string>
+    <string name="output_vflow_ui_screen_flash_success_name">是否成功</string>
+    <string name="error_vflow_ui_screen_flash_invalid_color">无效的颜色值</string>
+    <string name="error_vflow_ui_screen_flash_invalid_flash_count">闪烁次数必须大于 0</string>
+    <string name="msg_vflow_ui_screen_flash_showing">正在显示屏幕闪烁...</string>
+    <string name="label_flash_color">闪烁颜色</string>
+    <string name="label_select_color">选择颜色</string>
+    <string name="label_hex_input">输入十六进制颜色值</string>
+    <string name="label_confirm">确认</string>
+
     <!-- find_text -->
     <string name="module_find_text_name">查找文本</string>
     <string name="module_find_text_description">在屏幕上查找元素</string>

@@ -13,11 +13,14 @@ import com.chaomixian.vflow.core.module.OutputDefinition
 import com.chaomixian.vflow.core.module.ParameterType
 import com.chaomixian.vflow.core.module.ProgressUpdate
 import com.chaomixian.vflow.core.module.directToolMetadata
+import com.chaomixian.vflow.core.module.isMagicVariable
+import com.chaomixian.vflow.core.module.isNamedVariable
 import com.chaomixian.vflow.core.types.VTypeRegistry
 import com.chaomixian.vflow.core.types.basic.VBoolean
 import com.chaomixian.vflow.core.workflow.model.ActionStep
 import com.chaomixian.vflow.permissions.Permission
 import com.chaomixian.vflow.permissions.PermissionManager
+import com.chaomixian.vflow.ui.workflow_editor.PillUtil
 import com.chaomixian.vflow.services.VFlowCoreBridge
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.withContext
@@ -125,7 +128,9 @@ class CoreVolumeModule : BaseModule() {
             name = fallbackName,
             staticType = ParameterType.NUMBER,
             defaultValue = 50,
-            acceptsMagicVariable = false,
+            acceptsMagicVariable = true,
+            acceptsNamedVariable = true,
+            acceptedMagicVariableTypes = setOf(VTypeRegistry.NUMBER.id),
             isHidden = true,
             nameStringRes = nameResId
         )
@@ -163,15 +168,26 @@ class CoreVolumeModule : BaseModule() {
                 if (action == ACTION_KEEP) {
                     null
                 } else {
-                    val value = (step.parameters["${stream}_value"] as? Number)?.toInt() ?: 50
-                    describeAction(context, stream, action, value)
+                    val rawValue = step.parameters["${stream}_value"]
+                    val valStr = rawValue?.toString()
+                    if (valStr.isMagicVariable() || valStr.isNamedVariable()) {
+                        describeActionWithPill(context, stream, action, rawValue, inputsById["${stream}_value"])
+                    } else {
+                        val value = (rawValue as? Number)?.toInt() ?: 50
+                        describeAction(context, stream, action, value)
+                    }
                 }
             }
 
         return if (parts.isEmpty()) {
             context.getString(R.string.module_vflow_core_volume_name)
         } else {
-            parts.joinToString(", ")
+            android.text.SpannableStringBuilder().apply {
+                parts.forEachIndexed { index, part ->
+                    if (index > 0) append(", ")
+                    append(part)
+                }
+            }
         }
     }
 
@@ -206,7 +222,7 @@ class CoreVolumeModule : BaseModule() {
 
             val success = when (action) {
                 ACTION_SET -> {
-                    val percent = (step.parameters["${stream}_value"] as? Number)?.toInt() ?: 50
+                    val percent = (context.getVariable("${stream}_value").asNumber() ?: 50.0).toInt()
                     val actualVolume = percentToActualVolume(stream, percent)
                     onProgress(ProgressUpdate(appContext.getString(R.string.msg_vflow_core_volume_setting, streamName, percent)))
                     VFlowCoreBridge.setVolume(streamType, actualVolume).first
@@ -223,7 +239,7 @@ class CoreVolumeModule : BaseModule() {
             }
 
             if (success) {
-                val value = (step.parameters["${stream}_value"] as? Number)?.toInt() ?: 50
+                val value = (context.getVariable("${stream}_value").asNumber() ?: 50.0).toInt()
                 describeAction(appContext, stream, action, value)?.let(results::add)
             } else {
                 allSuccess = false
@@ -255,6 +271,17 @@ class CoreVolumeModule : BaseModule() {
         val streamName = getStreamName(context, stream)
         return when (action) {
             ACTION_SET -> context.getString(R.string.summary_vflow_core_volume_action_set, streamName, value)
+            ACTION_MUTE -> context.getString(R.string.summary_vflow_core_volume_action_mute, streamName)
+            ACTION_UNMUTE -> context.getString(R.string.summary_vflow_core_volume_action_unmute, streamName)
+            else -> null
+        }
+    }
+
+    private fun describeActionWithPill(context: Context, stream: String, action: String, rawValue: Any?, inputDef: InputDefinition?): CharSequence? {
+        val streamName = getStreamName(context, stream)
+        val pill = PillUtil.createPillFromParam(rawValue, inputDef)
+        return when (action) {
+            ACTION_SET -> PillUtil.buildSpannable(context, "${streamName}设为", pill)
             ACTION_MUTE -> context.getString(R.string.summary_vflow_core_volume_action_mute, streamName)
             ACTION_UNMUTE -> context.getString(R.string.summary_vflow_core_volume_action_unmute, streamName)
             else -> null
