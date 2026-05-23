@@ -382,12 +382,31 @@ object WorkflowExecutor {
 
         when (val result = module.execute(triggerContext) {}) {
             is ExecutionResult.Success -> {
-                executionContext.stepOutputs[triggerStep.id] = VObjectFactory.fromMapAny(result.outputs)
+                val triggerOutputs = VObjectFactory.fromMapAny(result.outputs)
+                val triggerOutputSchema = outputSchema(module, triggerStep, workflow.allSteps)
+                workflow.triggers
+                    .filter { sameTypeTrigger ->
+                        sameTypeTrigger.moduleId == triggerStep.moduleId &&
+                            outputSchema(module, sameTypeTrigger, workflow.allSteps) == triggerOutputSchema
+                    }
+                    .forEach { sameTypeTrigger ->
+                        executionContext.stepOutputs[sameTypeTrigger.id] = triggerOutputs
+                    }
             }
             is ExecutionResult.Failure -> {
                 throw IllegalStateException(result.errorMessage)
             }
             else -> Unit
+        }
+    }
+
+    private fun outputSchema(
+        module: ActionModule,
+        step: ActionStep,
+        allSteps: List<ActionStep>
+    ): List<Triple<String, String, String?>> {
+        return module.getDynamicOutputs(step, allSteps).map { output ->
+            Triple(output.id, output.typeName, output.listElementType)
         }
     }
 

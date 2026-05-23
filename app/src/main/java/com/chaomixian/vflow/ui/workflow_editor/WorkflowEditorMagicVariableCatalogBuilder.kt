@@ -120,6 +120,7 @@ internal class WorkflowEditorMagicVariableCatalogBuilder(
         val targetInputDef = findTargetInputDefinition(targetInputId, editingModule, currentParams, allSteps) ?: return null
         val editingActionIndex = (editingStepPosition - triggerStepCount).coerceAtLeast(0)
         val groupedStepOutputs = linkedMapOf<String, MutableList<MagicVariableItem>>()
+        val emittedTriggerSchemas = mutableSetOf<String>()
 
         for (i in (editingStepPosition - 1) downTo 0) {
             val step = allSteps[i]
@@ -134,6 +135,7 @@ internal class WorkflowEditorMagicVariableCatalogBuilder(
             }
 
             if (outputs.isEmpty()) continue
+            if (i < triggerStepCount && !emittedTriggerSchemas.add(triggerSchemaKey(step.moduleId, outputs))) continue
             val groupName = buildGroupTitle(i, triggerStepCount, module.metadata.getLocalizedName(context))
             val items = outputs.map { outputDef ->
                 MagicVariableItem(
@@ -175,6 +177,20 @@ internal class WorkflowEditorMagicVariableCatalogBuilder(
             acceptedMagicVariableTypes = targetInputDef.acceptedMagicVariableTypes,
             enableTypeFilter = enableTypeFilter
         )
+    }
+
+    private fun triggerSchemaKey(moduleId: String, outputs: List<OutputDefinition>): String {
+        return buildString {
+            append(moduleId)
+            outputs.forEach { output ->
+                append('|')
+                append(output.id)
+                append(':')
+                append(output.typeName)
+                append(':')
+                append(output.listElementType.orEmpty())
+            }
+        }
     }
 
     private fun findTargetInputDefinition(
