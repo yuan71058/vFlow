@@ -132,7 +132,7 @@ Contributions of all kinds are welcome. Whether you are opening issues, fixing b
 
 ### 💻 Developing a New Module
 
-The overall idea is still the same, but the current codebase needs a more precise workflow than just "create a class and register it":
+Building a module usually comes down to a few familiar steps: choose the right category, define the inputs, outputs, and execution logic, register it in the module table, then add any resources and validation it needs.
 
 1.  Create the module class under the appropriate category in `app/src/main/java/com/chaomixian/vflow/core/workflow/module/`, such as `interaction/`, `logic/`, or `triggers/`.
 2.  Regular modules usually extend `BaseModule`. If you're building something block-structured like `If`, `Loop`, or a UI container, start by studying `BaseBlockModule` and the existing block modules.
@@ -166,6 +166,7 @@ vFlow is still growing and still has a noticeable gap compared with more mature 
 起飞          RMB 200.00   2026/04/08
 起飞          RMB 500.00   2026/04/15
 起飞          RMB 800.00   2026/05/02
+起飞          RMB 500.00   2026/05/16
 ```
 
 </details>
