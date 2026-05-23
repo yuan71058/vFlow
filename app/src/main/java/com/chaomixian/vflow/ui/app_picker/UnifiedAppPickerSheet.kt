@@ -17,12 +17,19 @@ import androidx.lifecycle.lifecycleScope
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
 import com.chaomixian.vflow.R
+import com.chaomixian.vflow.core.workflow.module.system.InstalledAppQueryMatcher
+import com.chaomixian.vflow.core.workflow.module.system.InstalledAppSearchSupport
 import com.chaomixian.vflow.databinding.SheetUnifiedAppPickerBinding
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.chip.Chip
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.Job
+import kotlinx.coroutines.currentCoroutineContext
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.ensureActive
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.sync.Mutex
+import kotlinx.coroutines.sync.withLock
 import kotlinx.coroutines.withContext
 import java.util.Locale
 
@@ -54,7 +61,11 @@ class UnifiedAppPickerSheet : BottomSheetDialogFragment() {
     private var showAllUsers = false
 
     private var loadAppsJob: Job? = null
+    private var filterAppsJob: Job? = null
     private var searchActivitiesJob: Job? = null
+    private var warmActivitiesJob: Job? = null
+    private val activitySearchCache = mutableMapOf<String, List<ActivityItem>>()
+    private val activityIndexMutex = Mutex()
 
     // 回调
     private var onResultCallback: ((Intent) -> Unit)? = null
@@ -245,8 +256,36 @@ class UnifiedAppPickerSheet : BottomSheetDialogFragment() {
             withContext(Dispatchers.Main) {
                 if (_binding == null) return@withContext
                 allApps = appList
+                activitySearchCache.keys.retainAll(appList.mapTo(mutableSetOf()) { it.stableId })
                 appAdapter.setShowUserChip(showAllUsers)
                 appAdapter.updateData(allApps)
+                if (mode == AppPickerMode.SELECT_ACTIVITY && appList.isNotEmpty()) {
+                    warmActivitySearchCache(appList)
+                }
+            }
+        }
+    }
+
+    private fun warmActivitySearchCache(apps: List<AppInfo>) {
+        val context = context ?: return
+        val launchLabel = getString(R.string.text_launch_app)
+        warmActivitiesJob?.cancel()
+        warmActivitiesJob = viewLifecycleOwner.lifecycleScope.launch {
+            delay(350L)
+            val activitiesMap = mutableMapOf<String, List<ActivityItem>>()
+            val cacheSnapshot = activitySearchCache.toMap()
+            val loadedActivities = activityIndexMutex.withLock {
+                withContext(Dispatchers.IO) {
+                    loadActivitySearchIndex(context, apps, launchLabel, cacheSnapshot, activitiesMap)
+                }
+            }
+            if (_binding == null) return@launch
+            activitySearchCache.putAll(loadedActivities)
+            val currentQuery = binding.searchView.query?.toString()?.trim().orEmpty()
+            if (currentQuery.isNotBlank()) {
+                val filteredApps = filterAppsForQuery(currentQuery, activitySearchCache)
+            appAdapter.updateData(filteredApps)
+            appAdapter.expandAll(filteredApps, activitySearchCache)
             }
         }
     }
@@ -389,28 +428,100 @@ class UnifiedAppPickerSheet : BottomSheetDialogFragment() {
     private fun filterApps(query: String?) {
         if (query.isNullOrBlank()) {
             // 无搜索词时，恢复正常显示
+            searchActivitiesJob?.cancel()
+            filterAppsJob?.cancel()
             appAdapter.setSearchQuery("")
             appAdapter.collapseAll()
             appAdapter.updateData(allApps)
         } else {
-            val lowercaseQuery = query.lowercase(Locale.getDefault())
-            // 先过滤应用
-            val filteredApps = allApps.filter {
-                it.appName.lowercase(Locale.getDefault()).contains(lowercaseQuery) ||
-                        it.packageName.lowercase(Locale.getDefault()).contains(lowercaseQuery)
-            }
-            appAdapter.updateData(filteredApps)
-            appAdapter.setSearchQuery(query)
-
-            // 如果是 SELECT_ACTIVITY 模式，异步加载 Activity 并展开
-            if (mode == AppPickerMode.SELECT_ACTIVITY) {
-                val context = context ?: return
-                val launchLabel = getString(R.string.text_launch_app)
-                loadActivitiesForAllApps(filteredApps) { activitiesMap ->
-                    appAdapter.expandAll(filteredApps, activitiesMap)
-                }
+            val normalizedQuery = query.trim()
+            filterAppsJob?.cancel()
+            filterAppsJob = viewLifecycleOwner.lifecycleScope.launch {
+                filterAppsAsync(normalizedQuery)
             }
         }
+    }
+
+    private suspend fun filterAppsAsync(normalizedQuery: String) {
+        val appsSnapshot = allApps
+        val matcher = InstalledAppSearchSupport.createMatcher(normalizedQuery)
+
+        if (mode != AppPickerMode.SELECT_ACTIVITY) {
+            val filteredApps = withContext(Dispatchers.Default) {
+                appsSnapshot.filter { app ->
+                    app.matchesQuery(matcher)
+                }
+            }
+            if (_binding == null || binding.searchView.query?.toString()?.trim() != normalizedQuery) return
+            appAdapter.updateData(filteredApps, normalizedQuery)
+            return
+        }
+
+        val visibleStableIds = appsSnapshot.mapTo(mutableSetOf()) { it.stableId }
+        val cachedActivities = activitySearchCache.filterKeys { it in visibleStableIds }
+        val immediateMatches = withContext(Dispatchers.Default) {
+            filterAppsForQuery(appsSnapshot, matcher, cachedActivities)
+        }
+        if (_binding == null || binding.searchView.query?.toString()?.trim() != normalizedQuery) return
+        appAdapter.updateData(immediateMatches, normalizedQuery)
+        if (cachedActivities.isNotEmpty()) {
+            appAdapter.expandAll(immediateMatches, cachedActivities)
+        }
+
+        if (visibleStableIds.all { it in activitySearchCache }) {
+            return
+        }
+
+        val expectedQuery = normalizedQuery
+        loadActivitiesForAllApps(appsSnapshot, debounceMillis = 250L) { activitiesMap ->
+            val currentQuery = binding.searchView.query?.toString()?.trim().orEmpty()
+            if (currentQuery != expectedQuery) {
+                return@loadActivitiesForAllApps
+            }
+
+            viewLifecycleOwner.lifecycleScope.launch {
+                val expectedMatcher = InstalledAppSearchSupport.createMatcher(expectedQuery)
+                val filteredApps = withContext(Dispatchers.Default) {
+                    filterAppsForQuery(appsSnapshot, expectedMatcher, activitiesMap)
+                }
+                if (_binding == null || binding.searchView.query?.toString()?.trim() != expectedQuery) return@launch
+                appAdapter.updateData(filteredApps, expectedQuery)
+                appAdapter.expandAll(filteredApps, activitiesMap)
+            }
+        }
+    }
+
+    private fun filterAppsForQuery(
+        apps: List<AppInfo>,
+        matcher: InstalledAppQueryMatcher,
+        activitiesMap: Map<String, List<ActivityItem>>,
+    ): List<AppInfo> {
+        return apps.filter { app ->
+            app.matchesQuery(matcher) ||
+                activitiesMap[app.stableId].orEmpty().any { activity ->
+                    activity.matchesQuery(matcher)
+                }
+        }
+    }
+
+    private fun filterAppsForQuery(
+        query: String,
+        activitiesMap: Map<String, List<ActivityItem>>,
+    ): List<AppInfo> {
+        return filterAppsForQuery(allApps, InstalledAppSearchSupport.createMatcher(query), activitiesMap)
+    }
+
+    private fun AppInfo.matchesQuery(matcher: InstalledAppQueryMatcher): Boolean {
+        return InstalledAppSearchSupport.valueMatchesQuery(appName, matcher) ||
+            InstalledAppSearchSupport.valueMatchesQuery(packageName, matcher) ||
+            InstalledAppSearchSupport.valueMatchesQuery(userLabel, matcher)
+    }
+
+    private fun ActivityItem.matchesQuery(matcher: InstalledAppQueryMatcher): Boolean {
+        return name != "LAUNCH" && (
+            InstalledAppSearchSupport.valueMatchesQuery(name, matcher) ||
+                InstalledAppSearchSupport.valueMatchesQuery(label, matcher)
+        )
     }
 
     /**
@@ -418,24 +529,138 @@ class UnifiedAppPickerSheet : BottomSheetDialogFragment() {
      */
     private fun loadActivitiesForAllApps(
         apps: List<AppInfo>,
+        debounceMillis: Long = 0L,
         onLoaded: (Map<String, List<ActivityItem>>) -> Unit
     ) {
         val context = context ?: return
         val launchLabel = getString(R.string.text_launch_app)
 
         searchActivitiesJob?.cancel()
-        searchActivitiesJob = viewLifecycleOwner.lifecycleScope.launch(Dispatchers.IO) {
-            val activitiesMap = mutableMapOf<String, List<ActivityItem>>()
-
-            for (app in apps) {
-                activitiesMap[app.stableId] = loadActivitiesForAppInternal(context, app, launchLabel)
+        searchActivitiesJob = viewLifecycleOwner.lifecycleScope.launch {
+            if (debounceMillis > 0L) {
+                delay(debounceMillis)
             }
 
-            withContext(Dispatchers.Main) {
-                if (_binding == null) return@withContext
-                onLoaded(activitiesMap)
+            val activitiesMap = mutableMapOf<String, List<ActivityItem>>()
+            val cacheSnapshot = activitySearchCache.toMap()
+
+            val loadedActivities = activityIndexMutex.withLock {
+                withContext(Dispatchers.IO) {
+                    loadActivitySearchIndex(context, apps, launchLabel, cacheSnapshot, activitiesMap)
+                }
+            }
+
+            if (_binding == null) return@launch
+            activitySearchCache.putAll(loadedActivities)
+            onLoaded(activitiesMap)
+        }
+    }
+
+    private suspend fun loadActivitySearchIndex(
+        context: android.content.Context,
+        apps: List<AppInfo>,
+        launchLabel: String,
+        cacheSnapshot: Map<String, List<ActivityItem>>,
+        activitiesMap: MutableMap<String, List<ActivityItem>>,
+    ): Map<String, List<ActivityItem>> {
+        val loadedActivities = mutableMapOf<String, List<ActivityItem>>()
+        val missingApps = apps.filter { app ->
+            val cached = cacheSnapshot[app.stableId]
+            if (cached != null) {
+                activitiesMap[app.stableId] = cached
+                false
+            } else {
+                true
             }
         }
+        if (missingApps.isEmpty()) return loadedActivities
+
+        val pm = context.packageManager
+        val currentUserId = AppUserSupport.getCurrentUserId()
+        val currentUserPackages = missingApps
+            .filter { it.userId == currentUserId }
+            .mapTo(mutableSetOf()) { it.packageName }
+
+        if (currentUserPackages.isNotEmpty()) {
+            currentCoroutineContext().ensureActive()
+            val packagesWithActivities = try {
+                pm.getInstalledPackages(PackageManager.GET_ACTIVITIES)
+            } catch (_: Exception) {
+                emptyList()
+            }
+            packagesWithActivities.forEach { packageInfo ->
+                currentCoroutineContext().ensureActive()
+                val packageName = packageInfo.packageName
+                if (packageName !in currentUserPackages) return@forEach
+                val activityItems = packageInfo.activities
+                    ?.distinctBy { it.name }
+                    ?.map { activityInfo ->
+                        ActivityItem(
+                            name = activityInfo.name,
+                            label = activityInfo.nonLocalizedLabel?.toString().orEmpty(),
+                            isExported = activityInfo.exported
+                        )
+                    }
+                    .orEmpty()
+                if (activityItems.isNotEmpty()) {
+                    val stableId = "$packageName@$currentUserId"
+                    val activities = listOf(launchActivityItem(launchLabel)) + activityItems
+                    activitiesMap[stableId] = activities
+                    loadedActivities[stableId] = activities
+                }
+            }
+        }
+
+        val unresolvedApps = missingApps.filter { it.stableId !in activitiesMap }
+        val launcherApps = context.getSystemService(LauncherApps::class.java)
+        if (launcherApps != null && unresolvedApps.isNotEmpty()) {
+            unresolvedApps.groupBy { it.userId }.forEach { (userId, userApps) ->
+                currentCoroutineContext().ensureActive()
+                val userHandle = AppUserSupport.findUserHandle(context, userId) ?: return@forEach
+                val packagesForUser = userApps.mapTo(mutableSetOf()) { it.packageName }
+                val launcherActivities = try {
+                    launcherApps.getActivityList(null, userHandle)
+                } catch (_: Exception) {
+                    emptyList()
+                }
+                launcherActivities
+                    .filter { it.applicationInfo.packageName in packagesForUser }
+                    .groupBy { it.applicationInfo.packageName }
+                    .forEach { (packageName, activities) ->
+                        val stableId = "$packageName@$userId"
+                        val activityItems = activities
+                            .distinctBy { it.componentName.className }
+                            .map { launcherActivity ->
+                                ActivityItem(
+                                    name = launcherActivity.componentName.className,
+                                    label = launcherActivity.label?.toString().orEmpty(),
+                                    isExported = true
+                                )
+                            }
+                        val indexedActivities = listOf(launchActivityItem(launchLabel)) + activityItems
+                        activitiesMap[stableId] = indexedActivities
+                        loadedActivities[stableId] = indexedActivities
+                    }
+            }
+        }
+
+        missingApps
+            .filter { it.stableId !in activitiesMap }
+            .forEach { app ->
+                val activities = listOf(launchActivityItem(launchLabel))
+                activitiesMap[app.stableId] = activities
+                loadedActivities[app.stableId] = activities
+            }
+
+        return loadedActivities
+    }
+
+    private fun launchActivityItem(launchLabel: String): ActivityItem {
+        return ActivityItem(
+            name = "LAUNCH",
+            label = launchLabel,
+            isExported = true
+        )
     }
 
     private fun loadActivitiesForAppInternal(
@@ -445,13 +670,7 @@ class UnifiedAppPickerSheet : BottomSheetDialogFragment() {
     ): List<ActivityItem> {
         val pm = context.packageManager
         val activities = mutableListOf<ActivityItem>()
-        activities.add(
-            ActivityItem(
-                name = "LAUNCH",
-                label = launchLabel,
-                isExported = true
-            )
-        )
+        activities.add(launchActivityItem(launchLabel))
 
         val manifestActivities = try {
             val packageInfo = pm.getPackageInfo(appInfo.packageName, PackageManager.GET_ACTIVITIES)
@@ -504,8 +723,12 @@ class UnifiedAppPickerSheet : BottomSheetDialogFragment() {
     override fun onDestroyView() {
         loadAppsJob?.cancel()
         loadAppsJob = null
+        filterAppsJob?.cancel()
+        filterAppsJob = null
         searchActivitiesJob?.cancel()
         searchActivitiesJob = null
+        warmActivitiesJob?.cancel()
+        warmActivitiesJob = null
         super.onDestroyView()
         _binding = null
     }

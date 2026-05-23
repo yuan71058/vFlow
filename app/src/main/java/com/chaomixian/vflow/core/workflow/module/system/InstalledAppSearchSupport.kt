@@ -16,6 +16,7 @@ internal data class InstalledAppSearchCandidate(
     val userId: Int,
     val userLabel: String,
     val isLaunchable: Boolean,
+    val description: String = "",
 )
 
 internal data class InstalledAppSearchMatch(
@@ -24,7 +25,18 @@ internal data class InstalledAppSearchMatch(
     val isExactMatch: Boolean,
 )
 
+internal data class InstalledAppQueryMatcher(
+    val raw: String,
+    val lower: String,
+    val normalized: String,
+) {
+    val isBlank: Boolean
+        get() = lower.isBlank() || normalized.isBlank()
+}
+
 internal object InstalledAppSearchSupport {
+    private val matchTokenRegex = Regex("""[\p{L}\p{N}]+""")
+
     suspend fun searchApps(
         context: Context,
         query: String,
@@ -90,13 +102,32 @@ internal object InstalledAppSearchSupport {
     }
 
     internal fun normalizeForMatching(value: String): String {
-        return Regex("""[\p{L}\p{N}]+""")
+        return matchTokenRegex
             .findAll(value.lowercase(Locale.ROOT))
             .joinToString(separator = "") { it.value }
     }
 
+    internal fun createMatcher(query: String): InstalledAppQueryMatcher {
+        return InstalledAppQueryMatcher(
+            raw = query.trim(),
+            lower = query.trim().lowercase(Locale.ROOT),
+            normalized = normalizeForMatching(query),
+        )
+    }
+
+    internal fun valueMatchesQuery(value: String, query: String): Boolean {
+        return valueMatchesQuery(value, createMatcher(query))
+    }
+
+    internal fun valueMatchesQuery(value: String, matcher: InstalledAppQueryMatcher): Boolean {
+        if (matcher.isBlank) return false
+        val valueLower = value.lowercase(Locale.ROOT)
+        if (valueLower.contains(matcher.lower)) return true
+        return normalizeForMatching(value).contains(matcher.normalized)
+    }
+
     private fun tokenize(value: String): List<String> {
-        return Regex("""[\p{L}\p{N}]+""")
+        return matchTokenRegex
             .findAll(value.lowercase(Locale.ROOT))
             .map { it.value }
             .filter { it.length >= 2 }
@@ -113,11 +144,13 @@ internal object InstalledAppSearchSupport {
         val packageLower = candidate.packageName.lowercase(Locale.ROOT)
         val packageTail = candidate.packageName.substringAfterLast('.').lowercase(Locale.ROOT)
         val activityLower = candidate.activityName.lowercase(Locale.ROOT)
+        val descriptionLower = candidate.description.lowercase(Locale.ROOT)
 
         val normalizedApp = normalizeForMatching(candidate.appName)
         val normalizedPackage = normalizeForMatching(candidate.packageName)
         val normalizedPackageTail = normalizeForMatching(packageTail)
         val normalizedActivity = normalizeForMatching(candidate.activityName)
+        val normalizedDescription = normalizeForMatching(candidate.description)
 
         var score = 0
         var exactMatch = false
@@ -147,14 +180,19 @@ internal object InstalledAppSearchSupport {
         scoreField(packageTail, normalizedPackageTail, exactScore = 1_120, prefixScore = 980, containsScore = 860)
         scoreField(packageLower, normalizedPackage, exactScore = 1_100, prefixScore = 950, containsScore = 840)
         scoreField(activityLower, normalizedActivity, exactScore = 820, prefixScore = 760, containsScore = 680)
+        scoreField(descriptionLower, normalizedDescription, exactScore = 780, prefixScore = 720, containsScore = 640)
 
         if (queryTokens.isNotEmpty()) {
             val matchedTokenCount = queryTokens.count { token ->
+                val normalizedToken = normalizeForMatching(token)
                 appLower.contains(token) ||
                     packageLower.contains(token) ||
                     activityLower.contains(token) ||
-                    normalizedApp.contains(normalizeForMatching(token)) ||
-                    normalizedPackage.contains(normalizeForMatching(token))
+                    descriptionLower.contains(token) ||
+                    normalizedApp.contains(normalizedToken) ||
+                    normalizedPackage.contains(normalizedToken) ||
+                    normalizedActivity.contains(normalizedToken) ||
+                    normalizedDescription.contains(normalizedToken)
             }
             if (matchedTokenCount == queryTokens.size) {
                 score = maxOf(score, 800 + matchedTokenCount * 15)
@@ -215,6 +253,7 @@ internal object InstalledAppSearchSupport {
                     userId = currentUserId,
                     userLabel = userLabel,
                     isLaunchable = true,
+                    description = resolveInfo.loadLabel(pm)?.toString().orEmpty(),
                 )
             )
         }
@@ -231,6 +270,7 @@ internal object InstalledAppSearchSupport {
                         userId = currentUserId,
                         userLabel = userLabel,
                         isLaunchable = false,
+                        description = appInfo.loadDescription(pm)?.toString().orEmpty(),
                     )
                 )
             }
@@ -269,6 +309,7 @@ internal object InstalledAppSearchSupport {
                         userId = userId,
                         userLabel = userLabel,
                         isLaunchable = true,
+                        description = launcherActivity.label?.toString().orEmpty(),
                     )
                 )
             }
@@ -289,6 +330,7 @@ internal object InstalledAppSearchSupport {
                         userId = userId,
                         userLabel = userLabel,
                         isLaunchable = candidatesByKey["$packageName@$userId"]?.isLaunchable == true,
+                        description = appInfo?.loadDescription(pm)?.toString().orEmpty(),
                     )
                 )
             }

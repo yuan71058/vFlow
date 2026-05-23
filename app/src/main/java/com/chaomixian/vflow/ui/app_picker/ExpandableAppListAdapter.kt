@@ -10,8 +10,9 @@ import android.widget.TextView
 import androidx.core.view.isVisible
 import androidx.recyclerview.widget.RecyclerView
 import com.chaomixian.vflow.R
+import com.chaomixian.vflow.core.workflow.module.system.InstalledAppQueryMatcher
+import com.chaomixian.vflow.core.workflow.module.system.InstalledAppSearchSupport
 import com.google.android.material.chip.Chip
-import java.util.Locale
 
 /**
  * Activity项数据
@@ -40,6 +41,7 @@ class ExpandableAppListAdapter(
     private val expandedApps = mutableSetOf<String>()
     private val appActivities = mutableMapOf<String, List<ActivityItem>>()
     private var searchQuery: String = ""
+    private var searchMatcher: InstalledAppQueryMatcher? = null
     private var showUserChip: Boolean = false
 
     // 用于展平显示的数据
@@ -57,6 +59,15 @@ class ExpandableAppListAdapter(
         notifyDataSetChanged()
     }
 
+    fun updateData(newApps: List<AppInfo>, query: String) {
+        apps = newApps
+        searchQuery = query
+        searchMatcher = query.takeIf { it.isNotBlank() }
+            ?.let(InstalledAppSearchSupport::createMatcher)
+        rebuildDisplayItems()
+        notifyDataSetChanged()
+    }
+
     fun setShowUserChip(show: Boolean) {
         if (showUserChip == show) return
         showUserChip = show
@@ -65,6 +76,8 @@ class ExpandableAppListAdapter(
 
     fun setSearchQuery(query: String) {
         searchQuery = query
+        searchMatcher = query.takeIf { it.isNotBlank() }
+            ?.let(InstalledAppSearchSupport::createMatcher)
         rebuildDisplayItems()
         notifyDataSetChanged()
     }
@@ -105,29 +118,36 @@ class ExpandableAppListAdapter(
 
     private fun rebuildDisplayItems() {
         displayItems.clear()
-        val lowercaseQuery = searchQuery.lowercase(Locale.getDefault())
+        val hasQuery = searchQuery.isNotBlank()
+        val matcher = searchMatcher
 
         for (app in apps) {
-            val appMatches = lowercaseQuery.isEmpty() ||
-                    app.appName.lowercase(Locale.getDefault()).contains(lowercaseQuery) ||
-                    app.packageName.lowercase(Locale.getDefault()).contains(lowercaseQuery) ||
-                    app.userLabel.lowercase(Locale.getDefault()).contains(lowercaseQuery)
+            val appMatches = !hasQuery || matcher == null ||
+                    InstalledAppSearchSupport.valueMatchesQuery(app.appName, matcher) ||
+                    InstalledAppSearchSupport.valueMatchesQuery(app.packageName, matcher) ||
+                    InstalledAppSearchSupport.valueMatchesQuery(app.userLabel, matcher)
 
             val activities = appActivities[app.stableId] ?: emptyList()
 
             // 过滤 Activity（如果有搜索词）
-            val filteredActivities = if (lowercaseQuery.isEmpty()) {
+            val filteredActivities = if (!hasQuery) {
                 activities
             } else {
                 val launchItem = activities.find { it.name == "LAUNCH" }
                 val otherActivities = activities.filter { it.name != "LAUNCH" }
                         .filter { activity ->
-                            activity.name.lowercase(Locale.getDefault()).contains(lowercaseQuery) ||
-                                    activity.label.lowercase(Locale.getDefault()).contains(lowercaseQuery)
+                            matcher != null && (
+                                InstalledAppSearchSupport.valueMatchesQuery(activity.name, matcher) ||
+                                    InstalledAppSearchSupport.valueMatchesQuery(activity.label, matcher)
+                            )
                         }
                 // 确保 LAUNCH 始终在第一位
                 if (launchItem != null) {
-                    listOf(launchItem) + otherActivities
+                    if (appMatches && otherActivities.isEmpty()) {
+                        listOf(launchItem)
+                    } else {
+                        listOf(launchItem) + otherActivities
+                    }
                 } else {
                     otherActivities
                 }

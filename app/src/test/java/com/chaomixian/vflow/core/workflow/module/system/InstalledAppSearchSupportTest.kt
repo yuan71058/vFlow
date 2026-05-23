@@ -64,6 +64,47 @@ class InstalledAppSearchSupportTest {
     }
 
     @Test
+    fun rankCandidates_canMatchActivityClassName() {
+        val matches = InstalledAppSearchSupport.rankCandidates(
+            query = "settings panel",
+            candidates = listOf(
+                InstalledAppSearchCandidate(
+                    appName = "系统设置",
+                    packageName = "com.android.settings",
+                    activityName = "com.android.settings.SettingsPanelActivity",
+                    userId = 0,
+                    userLabel = "用户 0",
+                    isLaunchable = true,
+                ),
+            ),
+            maxResults = 5,
+        )
+
+        assertEquals("com.android.settings", matches.first().candidate.packageName)
+    }
+
+    @Test
+    fun rankCandidates_canMatchDescription() {
+        val matches = InstalledAppSearchSupport.rankCandidates(
+            query = "快捷入口",
+            candidates = listOf(
+                InstalledAppSearchCandidate(
+                    appName = "工具箱",
+                    packageName = "com.example.toolbox",
+                    activityName = "com.example.toolbox.EntryActivity",
+                    userId = 0,
+                    userLabel = "用户 0",
+                    isLaunchable = true,
+                    description = "快捷入口",
+                ),
+            ),
+            maxResults = 5,
+        )
+
+        assertEquals("com.example.toolbox", matches.first().candidate.packageName)
+    }
+
+    @Test
     fun normalizeForMatching_removesSeparators() {
         assertEquals(
             "it之家2026",
