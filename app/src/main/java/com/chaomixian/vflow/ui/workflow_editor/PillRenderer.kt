@@ -15,6 +15,8 @@ import com.chaomixian.vflow.R
 import com.chaomixian.vflow.core.execution.VariableResolver
 import com.chaomixian.vflow.core.module.isMagicVariable
 import com.chaomixian.vflow.core.module.isNamedVariable
+import com.chaomixian.vflow.core.types.parser.TemplateParser
+import com.chaomixian.vflow.core.types.parser.TemplateSegment
 import com.chaomixian.vflow.core.workflow.model.ActionStep
 import com.chaomixian.vflow.ui.workflow_editor.pill.ParameterPillSpan
 import com.chaomixian.vflow.ui.workflow_editor.pill.PillTheme
@@ -235,34 +237,26 @@ object PillRenderer {
         context: Context
     ): SpannableStringBuilder {
         val spannable = SpannableStringBuilder()
-        val matcher = com.chaomixian.vflow.core.execution.VariableResolver.VARIABLE_PATTERN.matcher(rawText)
-        var lastEnd = 0
 
-        while (matcher.find()) {
-            // 添加变量引用之前的普通文本
-            spannable.append(rawText.substring(lastEnd, matcher.start()))
+        TemplateParser(rawText).parse().forEach { segment ->
+            when (segment) {
+                is TemplateSegment.Text -> spannable.append(segment.content)
+                is TemplateSegment.Variable -> {
+                    val variableRef = segment.rawExpression
+                    val resolvedInfo = PillVariableResolver.resolveVariable(context, variableRef, allSteps)
+                    val color = resolvedInfo?.color
+                        ?: PillTheme.getColor(context, R.color.variable_pill_color)
 
-            val variableRef = matcher.group(1)
-            if (variableRef != null) {
-                val resolvedInfo = PillVariableResolver.resolveVariable(context, variableRef, allSteps)
-                val color = resolvedInfo?.color
-                    ?: PillTheme.getColor(context, R.color.variable_pill_color)
-
-                if (mode == RenderMode.EDIT) {
-                    // ===== 编辑模式：保留原始变量引用 =====
-                    renderPillWithSpacing(spannable, variableRef, resolvedInfo?.displayName ?: variableRef, color, context, allSteps)
-                } else {
-                    // ===== 预览模式：替换为显示名称 =====
-                    val displayName = resolvedInfo?.displayName ?: variableRef
-                    renderPillWithSpacing(spannable, displayName, null, color, context, allSteps)
+                    if (mode == RenderMode.EDIT) {
+                        // ===== 编辑模式：保留原始变量引用 =====
+                        renderPillWithSpacing(spannable, variableRef, resolvedInfo?.displayName ?: variableRef, color, context, allSteps)
+                    } else {
+                        // ===== 预览模式：替换为显示名称 =====
+                        val displayName = resolvedInfo?.displayName ?: variableRef
+                        renderPillWithSpacing(spannable, displayName, null, color, context, allSteps)
+                    }
                 }
             }
-            lastEnd = matcher.end()
-        }
-
-        // 添加剩余的普通文本
-        if (lastEnd < rawText.length) {
-            spannable.append(rawText.substring(lastEnd))
         }
 
         return spannable
@@ -401,21 +395,27 @@ object PillRenderer {
             if (allSteps == null) return emptyList()
 
             val segments = mutableListOf<VariableSegment>()
-            val matcher = com.chaomixian.vflow.core.execution.VariableResolver.VARIABLE_PATTERN.matcher(text)
+            var currentOffset = 0
 
-            while (matcher.find()) {
-                val variableRef = matcher.group(1) ?: continue
-                val resolvedInfo = PillVariableResolver.resolveVariable(context, variableRef, allSteps)
-                val displayName = resolvedInfo?.displayName ?: variableRef
-                val color = resolvedInfo?.color ?: nestedPillColor
+            TemplateParser(text).parse().forEach { segment ->
+                when (segment) {
+                    is TemplateSegment.Text -> currentOffset += segment.content.length
+                    is TemplateSegment.Variable -> {
+                        val variableRef = segment.rawExpression
+                        val resolvedInfo = PillVariableResolver.resolveVariable(context, variableRef, allSteps)
+                        val displayName = resolvedInfo?.displayName ?: variableRef
+                        val color = resolvedInfo?.color ?: nestedPillColor
 
-                segments.add(VariableSegment(
-                    start = matcher.start(),
-                    end = matcher.end(),
-                    variableRef = variableRef,
-                    displayName = displayName,
-                    color = color
-                ))
+                        segments.add(VariableSegment(
+                            start = currentOffset,
+                            end = currentOffset + variableRef.length,
+                            variableRef = variableRef,
+                            displayName = displayName,
+                            color = color
+                        ))
+                        currentOffset += variableRef.length
+                    }
+                }
             }
 
             return segments
@@ -438,8 +438,8 @@ object PillRenderer {
 
             // 如果包含变量引用，需要计算解析后的实际宽度
             val textWidth = if (allSteps != null &&
-                com.chaomixian.vflow.core.execution.VariableResolver.hasVariableReference(textToMeasure.toString())) {
-                calculateTextWidthWithVariables(paint, textToMeasure.toString())
+                com.chaomixian.vflow.core.execution.VariableResolver.hasVariableReference(textToMeasure)) {
+                calculateTextWidthWithVariables(paint, textToMeasure)
             } else {
                 paint.measureText(textToMeasure)
             }
@@ -498,11 +498,11 @@ object PillRenderer {
 
             // 检查是否包含变量引用
             val hasVariableRef = allSteps != null &&
-                com.chaomixian.vflow.core.execution.VariableResolver.hasVariableReference(textToDraw.toString())
+                com.chaomixian.vflow.core.execution.VariableResolver.hasVariableReference(textToDraw)
 
             // 计算文本宽度（如果包含变量引用，使用解析后的实际宽度）
             val textWidth = if (hasVariableRef) {
-                calculateTextWidthWithVariables(paint, textToDraw.toString())
+                calculateTextWidthWithVariables(paint, textToDraw)
             } else {
                 paint.measureText(textToDraw)
             }
@@ -523,14 +523,14 @@ object PillRenderer {
 
             // 绘制嵌套Pill（如果存在变量引用）
             if (hasVariableRef) {
-                drawNestedPills(canvas, textToDraw.toString(), bgStart + internalPaddingX, y, paint)
+                drawNestedPills(canvas, textToDraw, bgStart + internalPaddingX, y, paint)
             }
 
             // 绘制文本
             paint.color = textColor
             if (hasVariableRef) {
                 // 如果包含变量引用，分段绘制（使用显示名称）
-                drawTextWithVariableResolution(canvas, textToDraw.toString(), bgStart + internalPaddingX, y.toFloat(), paint)
+                drawTextWithVariableResolution(canvas, textToDraw, bgStart + internalPaddingX, y.toFloat(), paint)
             } else {
                 // 普通文本，直接绘制
                 canvas.drawText(textToDraw, 0, textToDraw.length, bgStart + internalPaddingX, y.toFloat(), paint)

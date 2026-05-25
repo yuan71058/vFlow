@@ -4,13 +4,12 @@ package com.chaomixian.vflow.core.execution
 import com.chaomixian.vflow.core.module.*
 import com.chaomixian.vflow.core.types.VObject
 import com.chaomixian.vflow.core.types.VObjectFactory
+import com.chaomixian.vflow.core.types.VTypeRegistry
 import com.chaomixian.vflow.core.types.basic.VNull
 import com.chaomixian.vflow.core.types.basic.VString
 import com.chaomixian.vflow.core.types.parser.TemplateParser
 import com.chaomixian.vflow.core.types.parser.TemplateSegment
 import com.chaomixian.vflow.core.types.parser.VariablePathParser
-import java.util.regex.Matcher
-import java.util.regex.Pattern
 
 /**
  * 变量解析器。
@@ -19,27 +18,18 @@ import java.util.regex.Pattern
  */
 object VariableResolver {
 
-    // 将 private 改为 public，供 UI 组件复用，确保全应用解析规则一致
-    val VARIABLE_PATTERN: Pattern = Pattern.compile("(\\{\\{.*?\\}\\}|\\[\\[.*?\\]\\])")
-
     /**
      * 判断文本是否为"复杂"内容（文本 + 变量的混合）。
      */
     fun isComplex(text: String?): Boolean {
         if (text.isNullOrEmpty()) return false
 
-        val matcher = VARIABLE_PATTERN.matcher(text)
-        var variableCount = 0
-        while (matcher.find()) {
-            variableCount++
-        }
+        val segments = TemplateParser(text).parse()
+        val variableCount = segments.count { it is TemplateSegment.Variable }
 
         if (variableCount == 0) return false // 纯文本
         if (variableCount > 1) return true   // 多个变量
-
-        // 只有一个变量，检查是否还有其他文本
-        val textWithoutVariable = matcher.replaceAll("").trim()
-        return textWithoutVariable.isNotEmpty()
+        return segments.any { it is TemplateSegment.Text && it.content.trim().isNotEmpty() }
     }
 
     /**
@@ -48,7 +38,7 @@ object VariableResolver {
      */
     fun hasVariableReference(text: String?): Boolean {
         if (text.isNullOrEmpty()) return false
-        return VARIABLE_PATTERN.matcher(text).find()
+        return TemplateParser(text).parse().any { it is TemplateSegment.Variable }
     }
 
     /**
@@ -115,6 +105,13 @@ object VariableResolver {
         return resolve(text, context)
     }
 
+    fun resolveSingleVariableReference(text: String, context: ExecutionContext): VObject? {
+        val segments = TemplateParser(text).parse()
+        val segment = segments.singleOrNull() as? TemplateSegment.Variable ?: return null
+        if (segment.rawExpression != text) return null
+        return resolveExistingVariableObject(segment, context)
+    }
+
     /**
      * 核心寻址逻辑：Path -> VObject
      * 所有变量现在直接存储为 VObject，无需再包装
@@ -123,11 +120,18 @@ object VariableResolver {
         segment: TemplateSegment.Variable,
         context: ExecutionContext
     ): VObject {
+        return resolveExistingVariableObject(segment, context)
+            ?: VObjectFactory.from("{${segment.rawExpression}}") // 保持原样或返回空
+    }
+
+    private fun resolveExistingVariableObject(
+        segment: TemplateSegment.Variable,
+        context: ExecutionContext
+    ): VObject? {
         val path = segment.path
-        if (path.isEmpty()) return VNull
+        if (path.isEmpty()) return null
 
         val rootKey = path[0]
-        var currentObj: VObject = VNull
 
         // 1. 寻找根对象 (Root)
         if (segment.isNamedVariable) {
@@ -140,9 +144,9 @@ object VariableResolver {
 
             if (namedPath.isNotEmpty()) {
                 val raw = context.namedVariables[namedPath[0]]
-                currentObj = VObjectFactory.from(raw)
+                val currentObj = VObjectFactory.from(raw)
                 if (currentObj !is VNull) {
-                    return traverseProperties(currentObj, namedPath, 1)
+                    return traverseProperties(currentObj, namedPath, 1, context)
                 }
             }
         } else {
@@ -151,7 +155,7 @@ object VariableResolver {
                 if (globalPath.isNotEmpty()) {
                     val root = context.getGlobalVariable(globalPath[0])
                     if (root !is VNull) {
-                        return traverseProperties(root, globalPath, 1)
+                        return traverseProperties(root, globalPath, 1, context)
                     }
                 }
             }
@@ -164,34 +168,28 @@ object VariableResolver {
                 val vOutput = context.stepOutputs[stepId]?.get(outputId)
                 if (vOutput != null) {
                     // stepOutputs 现在直接存储 VObject，无需转换
-                    return traverseProperties(vOutput, path, 2)
+                    return traverseProperties(vOutput, path, 2, context)
                 }
             }
 
             // 兼容旧逻辑：如果只是 {{key}} 且在 magicVariables 里有 (例如循环变量 index)
-            if (currentObj is VNull && context.magicVariables.containsKey(rootKey)) {
-                currentObj = context.magicVariables[rootKey] ?: VNull
+            if (context.magicVariables.containsKey(rootKey)) {
+                val currentObj = context.magicVariables[rootKey] ?: VNull
                 // 消耗掉第1个节点，从 index 1 开始遍历属性
-                return traverseProperties(currentObj, path, 1)
+                return traverseProperties(currentObj, path, 1, context)
             }
         }
 
-        // 如果找不到根对象
-        if (currentObj is VNull) {
-            return VObjectFactory.from("{${segment.rawExpression}}") // 保持原样或返回空
-        }
-
-        // 命名变量属性遍历 (从 index 1 开始)
-        return traverseProperties(currentObj, path, 1)
+        return null
     }
 
     /**
      * 递归属性访问
      */
-    private fun traverseProperties(root: VObject, path: List<String>, startIndex: Int): VObject {
+    private fun traverseProperties(root: VObject, path: List<String>, startIndex: Int, context: ExecutionContext): VObject {
         var current = root
         for (i in startIndex until path.size) {
-            val propName = path[i]
+            val propName = resolveDynamicPathSegment(path[i], current, context)
             val next = current.getProperty(propName)
             if (next == null || next is VNull) {
                 return VNull // 属性链断裂
@@ -199,5 +197,21 @@ object VariableResolver {
             current = next
         }
         return current
+    }
+
+    private fun resolveDynamicPathSegment(pathSegment: String, current: VObject, context: ExecutionContext): String {
+        if (!hasVariableReference(pathSegment)) return pathSegment
+        if (!supportsDynamicPathSegment(current)) return pathSegment
+
+        val resolved = resolve(pathSegment, context)
+        return resolved.toDoubleOrNull()
+            ?.takeIf { !it.isNaN() && it % 1.0 == 0.0 }
+            ?.toInt()
+            ?.toString()
+            ?: resolved
+    }
+
+    private fun supportsDynamicPathSegment(current: VObject): Boolean {
+        return current.type == VTypeRegistry.LIST || current.type == VTypeRegistry.STRING
     }
 }

@@ -1074,7 +1074,8 @@ class WorkflowEditorActivity : BaseActivity() {
             acceptsMagicVariable = pickerModel.acceptsMagicVariable,
             acceptsNamedVariable = pickerModel.acceptsNamedVariable,
             acceptedMagicVariableTypes = pickerModel.acceptedMagicVariableTypes,
-            enableTypeFilter = pickerModel.enableTypeFilter
+            enableTypeFilter = pickerModel.enableTypeFilter,
+            allSteps = allSteps
         )
 
         picker.onSelection = { selectedItem ->

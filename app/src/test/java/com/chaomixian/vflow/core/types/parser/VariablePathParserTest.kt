@@ -33,6 +33,23 @@ class VariablePathParserTest {
     }
 
     @Test
+    fun `parseSingleVariableReference keeps canonical variable index as one path segment`() {
+        val parsed = VariablePathParser.parseSingleVariableReference("{{step1.items.{{vars.index}}.name}}")
+
+        assertEquals(listOf("step1", "items", "{{vars.index}}", "name"), parsed?.path)
+        assertFalse(parsed?.isNamedVariable ?: true)
+    }
+
+    @Test
+    fun `parseSingleVariableReference keeps nested magic variable expression intact`() {
+        val parsed = VariablePathParser.parseSingleVariableReference("{{aaa.{{bbb}}}}")
+
+        assertEquals(listOf("aaa", "{{bbb}}"), parsed?.path)
+        assertEquals("{{aaa.{{bbb}}}}", parsed?.rawReference)
+        assertFalse(parsed?.isNamedVariable ?: true)
+    }
+
+    @Test
     fun `parseSingleVariableReference rejects adjacent variables`() {
         assertNull(VariablePathParser.parseSingleVariableReference("{{a}}{{b}}"))
         assertNull(VariablePathParser.parseSingleVariableReference("[[a]][[b]]"))

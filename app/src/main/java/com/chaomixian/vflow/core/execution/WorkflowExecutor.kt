@@ -20,7 +20,6 @@ import com.chaomixian.vflow.core.types.basic.VBoolean
 import com.chaomixian.vflow.core.types.basic.VList
 import com.chaomixian.vflow.core.types.basic.VDictionary
 import com.chaomixian.vflow.core.types.complex.VImage
-import com.chaomixian.vflow.core.types.parser.VariablePathParser
 import com.chaomixian.vflow.core.utils.StorageManager
 import com.chaomixian.vflow.core.workflow.model.ActionStep
 import com.chaomixian.vflow.core.workflow.model.ActionStepExecutionSettings
@@ -514,66 +513,15 @@ object WorkflowExecutor {
                     when {
                         // 1. 魔法变量 ({{...}})
                         value.isMagicVariable() -> {
-                            val parts = VariablePathParser.parseVariableReference(value)
-                            val sourceStepId = parts.getOrNull(0)
-                            val sourceOutputId = parts.getOrNull(1)
-
-                            if (sourceStepId == VariablePathParser.GLOBAL_VARIABLE_NAMESPACE && sourceOutputId != null) {
-                                val rootObj = initialContext.getGlobalVariable(sourceOutputId)
-                                if (parts.size > 2) {
-                                    var currentVObj = rootObj
-                                    for (i in 2 until parts.size) {
-                                        val propName = parts[i]
-                                        val nextVObj = currentVObj.getProperty(propName)
-                                        currentVObj = nextVObj ?: VNull
-                                    }
-                                    executionContext.magicVariables[key] = currentVObj
-                                } else {
-                                    executionContext.magicVariables[key] = rootObj
-                                }
-                            } else if (sourceStepId != null && sourceOutputId != null) {
-                                val rootObj = stepOutputs[sourceStepId]?.get(sourceOutputId)
-                                if (rootObj != null) {
-                                    if (parts.size > 2) {
-                                        // 有属性访问 (path长度 > 2)，启用 VObject 系统
-                                        // 递归获取属性值
-                                        var currentVObj = VObjectFactory.from(rootObj)
-                                        for (i in 2 until parts.size) {
-                                            val propName = parts[i]
-                                            val nextVObj = currentVObj.getProperty(propName)
-                                            currentVObj = nextVObj ?: VNull
-                                        }
-                                        // 保留 VObject 包装，支持隐式类型转换
-                                        executionContext.magicVariables[key] = currentVObj
-                                    } else {
-                                        // 无属性访问，直接引用原始对象 (保留 ImageVariable 类型，适配旧模块)
-                                        executionContext.magicVariables[key] = rootObj
-                                    }
-                                }
+                            VariableResolver.resolveSingleVariableReference(value, executionContext)?.let { resolved ->
+                                executionContext.magicVariables[key] = resolved
                             }
                         }
 
                         // 2. 命名变量 ([[...]])
                         value.isNamedVariable() -> {
-                            val parts = VariablePathParser.parseNamedVariablePath(value) ?: emptyList()
-                            val varName = parts.firstOrNull()
-
-                            if (varName != null && namedVariables.containsKey(varName)) {
-                                val rootObj = namedVariables[varName]
-                                if (parts.size > 1) {
-                                    // 命名变量属性访问
-                                    var currentVObj = VObjectFactory.from(rootObj)
-                                    for (i in 1 until parts.size) {
-                                        val propName = parts[i]
-                                        val nextVObj = currentVObj.getProperty(propName)
-                                        currentVObj = nextVObj ?: VNull
-                                    }
-                                    // 保留 VObject 包装，支持隐式类型转换
-                                    executionContext.magicVariables[key] = currentVObj
-                                } else {
-                                    // rootObj 可能是 null，需要处理
-                                    executionContext.magicVariables[key] = rootObj ?: VNull
-                                }
+                            VariableResolver.resolveSingleVariableReference(value, executionContext)?.let { resolved ->
+                                executionContext.magicVariables[key] = resolved
                             }
                         }
 

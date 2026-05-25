@@ -141,8 +141,7 @@ class TemplateParser(private val input: String) {
      * 将 "step1.result.width" 解析为 ["step1", "result", "width"]
      */
     private fun parsePath(expression: String): List<String> {
-        // 简单按点分割
-        return expression.split('.').map { it.trim() }
+        return VariablePathParser.parsePath(expression)
     }
 
     private fun isCanonicalNamedVariable(path: List<String>): Boolean {

@@ -15,6 +15,8 @@ import com.chaomixian.vflow.core.types.basic.VList
 import com.chaomixian.vflow.core.types.basic.VNumber
 import com.chaomixian.vflow.core.types.basic.VString
 import com.chaomixian.vflow.core.types.complex.VImage
+import com.chaomixian.vflow.core.types.parser.TemplateParser
+import com.chaomixian.vflow.core.types.parser.TemplateSegment
 import com.chaomixian.vflow.core.types.serialization.VObjectGsonAdapter
 import okhttp3.MultipartBody
 import com.chaomixian.vflow.core.workflow.model.ActionStep
@@ -454,43 +456,22 @@ class HttpRequestModule : BaseModule() {
      */
     private fun extractImagesFromRichText(text: String, context: ExecutionContext): List<VImage> {
         val images = mutableListOf<VImage>()
+        val segments = TemplateParser(text).parse()
 
-        // 正则匹配变量引用 {{variable}}
-        val variablePattern = Regex("\\{\\{([^}]+)\\}\\}")
-        val matches = variablePattern.findAll(text)
+        android.util.Log.d("HttpRequestModule", "extractImagesFromRichText: text='$text', segments count=${segments.size}")
 
-        android.util.Log.d("HttpRequestModule", "extractImagesFromRichText: text='$text', matches count=${matches.count()}")
+        for (segment in segments) {
+            if (segment !is TemplateSegment.Variable) continue
 
-        for (match in matches) {
-            val variablePath = match.groupValues[1]
-            android.util.Log.d("HttpRequestModule", "Found variable: $variablePath")
+            android.util.Log.d("HttpRequestModule", "Found variable: ${segment.rawExpression}")
 
-            // 解析变量路径：格式为 "stepId.outputId" 或 "outputId"
-            val parts = variablePath.split('.')
-            val stepId = if (parts.size >= 2) parts[0] else null
-            val outputId = if (parts.size >= 2) parts[1] else parts[0]
-
-            android.util.Log.d("HttpRequestModule", "Parsed - stepId: $stepId, outputId: $outputId")
-
-            // 尝试从步骤输出中获取 VImage 对象
-            val image = if (stepId != null) {
-                // 格式：stepId.outputId
-                val stepOutput = context.stepOutputs[stepId]
-                val outputValue = stepOutput?.get(outputId)
-                android.util.Log.d("HttpRequestModule", "Step output value type: ${outputValue?.javaClass?.name}")
-                outputValue as? VImage
-            } else {
-                // 格式：只有 outputId（从当前步骤的魔法变量获取）
-                val magicVar = context.getVariable(outputId)
-                android.util.Log.d("HttpRequestModule", "Magic variable type: ${magicVar?.javaClass?.name}")
-                magicVar as? VImage
-            }
+            val image = VariableResolver.resolveSingleVariableReference(segment.rawExpression, context) as? VImage
 
             if (image != null) {
                 android.util.Log.d("HttpRequestModule", "Added VImage: ${image.uriString}")
                 images.add(image)
             } else {
-                android.util.Log.w("HttpRequestModule", "Variable $variablePath is not an image or not found")
+                android.util.Log.w("HttpRequestModule", "Variable ${segment.rawExpression} is not an image or not found")
             }
         }
 

@@ -40,25 +40,70 @@ object VariablePathParser {
      * @return 路径段列表，例如 "list.0.name" → ["list", "0", "name"]
      */
     fun parsePath(expression: String): List<String> {
-        // 简单按点分割，不支持方括号
         val path = mutableListOf<String>()
         val buffer = StringBuilder()
         var i = 0
+        var braceDepth = 0
+        var bracketDepth = 0
 
         while (i < expression.length) {
             val c = expression[i]
 
             when (c) {
-                // 遇到点号：将缓冲区内容作为一个路径元素
+                '{' -> {
+                    if (i + 1 < expression.length && expression[i + 1] == '{') {
+                        braceDepth++
+                        buffer.append("{{")
+                        i += 2
+                    } else {
+                        buffer.append(c)
+                        i++
+                    }
+                }
+
+                '}' -> {
+                    if (i + 1 < expression.length && expression[i + 1] == '}' && braceDepth > 0) {
+                        braceDepth--
+                        buffer.append("}}")
+                        i += 2
+                    } else {
+                        buffer.append(c)
+                        i++
+                    }
+                }
+
+                '[' -> {
+                    if (i + 1 < expression.length && expression[i + 1] == '[') {
+                        bracketDepth++
+                        buffer.append("[[")
+                        i += 2
+                    } else {
+                        buffer.append(c)
+                        i++
+                    }
+                }
+
+                ']' -> {
+                    if (i + 1 < expression.length && expression[i + 1] == ']' && bracketDepth > 0) {
+                        bracketDepth--
+                        buffer.append("]]")
+                        i += 2
+                    } else {
+                        buffer.append(c)
+                        i++
+                    }
+                }
+
                 '.' -> {
-                    if (buffer.isNotEmpty()) {
+                    if (braceDepth == 0 && bracketDepth == 0 && buffer.isNotEmpty()) {
                         path.add(buffer.toString().trim())
                         buffer.clear()
+                    } else {
+                        buffer.append(c)
                     }
                     i++
                 }
 
-                // 普通字符
                 else -> {
                     buffer.append(c)
                     i++
@@ -66,7 +111,6 @@ object VariablePathParser {
             }
         }
 
-        // 添加最后一个路径元素
         if (buffer.isNotEmpty()) {
             path.add(buffer.toString().trim())
         }

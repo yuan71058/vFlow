@@ -18,10 +18,12 @@ import com.chaomixian.vflow.R
 import com.chaomixian.vflow.core.types.VTypeRegistry
 import com.chaomixian.vflow.core.types.VPropertyDef
 import com.chaomixian.vflow.core.types.parser.VariablePathParser
+import com.chaomixian.vflow.core.workflow.model.ActionStep
 import com.google.android.material.bottomsheet.BottomSheetDialogFragment
 import com.google.android.material.button.MaterialButton
 import com.google.android.material.card.MaterialCardView
 import com.google.android.material.chip.Chip
+import com.google.android.material.textfield.TextInputLayout
 import kotlinx.parcelize.Parcelize
 
 /**
@@ -93,6 +95,7 @@ class MagicVariablePickerSheet : BottomSheetDialogFragment() {
 
     /** 选择回调：当用户选择一个变量或清除操作时触发。null 表示清除了选择。 */
     var onSelection: ((MagicVariableItem?) -> Unit)? = null
+    private var onInlineVariableSelection: ((MagicVariableItem) -> Unit)? = null
 
     private lateinit var rootRecyclerView: RecyclerView
     private lateinit var navigationContainer: View
@@ -107,6 +110,9 @@ class MagicVariablePickerSheet : BottomSheetDialogFragment() {
     private var expandedActionNode: ActionNode? = null
     private var currentNavigationState: NavigationState? = null
     private var currentNavigationStack: MutableList<NavigationCrumb> = mutableListOf()
+    private var currentStepVariables: Map<String, List<MagicVariableItem>> = emptyMap()
+    private var currentNamedVariables: Map<String, List<MagicVariableItem>> = emptyMap()
+    private var currentAllSteps: List<ActionStep> = emptyList()
 
     companion object {
         /**
@@ -118,7 +124,9 @@ class MagicVariablePickerSheet : BottomSheetDialogFragment() {
             acceptsMagicVariable: Boolean,
             acceptsNamedVariable: Boolean,
             acceptedMagicVariableTypes: Set<String> = emptySet(),
-            enableTypeFilter: Boolean = false
+            enableTypeFilter: Boolean = false,
+            allowClear: Boolean = true,
+            allSteps: List<ActionStep> = emptyList()
         ): MagicVariablePickerSheet {
             return MagicVariablePickerSheet().apply {
                 arguments = Bundle().apply {
@@ -128,6 +136,8 @@ class MagicVariablePickerSheet : BottomSheetDialogFragment() {
                     putBoolean("acceptsNamed", acceptsNamedVariable)
                     putSerializable("acceptedTypes", HashSet(acceptedMagicVariableTypes))
                     putBoolean("enableTypeFilter", enableTypeFilter)
+                    putBoolean("allowClear", allowClear)
+                    putParcelableArrayList("allSteps", ArrayList(allSteps))
                 }
             }
         }
@@ -150,19 +160,25 @@ class MagicVariablePickerSheet : BottomSheetDialogFragment() {
 
         val acceptsMagic = arguments?.getBoolean("acceptsMagic", true) ?: true
         val acceptsNamed = arguments?.getBoolean("acceptsNamed", true) ?: true
+        val allowClear = arguments?.getBoolean("allowClear", true) ?: true
 
         // Bundle 序列化会丢失 Map 顺序，需要手动排序
         @Suppress("UNCHECKED_CAST")
         val namedVariables = arguments?.getSerializable("namedVariables") as? Map<String, List<MagicVariableItem>> ?: emptyMap()
         @Suppress("UNCHECKED_CAST")
         val stepVariables = arguments?.getSerializable("stepVariables") as? Map<String, List<MagicVariableItem>> ?: emptyMap()
+        currentNamedVariables = namedVariables
+        currentStepVariables = stepVariables
+        currentAllSteps = arguments?.getParcelableArrayList<ActionStep>("allSteps") ?: emptyList()
         currentNavigationStack =
             (arguments?.getParcelableArrayList<NavigationCrumb>(ARG_NAVIGATION_STACK)?.toMutableList())
                 ?: mutableListOf()
 
         // 将分组数据转换为 RecyclerView 的列表项
         val items = mutableListOf<PickerListItem>().apply {
-            add(PickerListItem.ClearAction) // 总是添加“清除”选项
+            if (allowClear) {
+                add(PickerListItem.ClearAction)
+            }
 
             // 添加命名变量分组（按原顺序）
             if (acceptsNamed) {
@@ -194,8 +210,7 @@ class MagicVariablePickerSheet : BottomSheetDialogFragment() {
         navigationRecyclerView.layoutManager = LinearLayoutManager(context)
         sheetDoneButton.setOnClickListener {
             currentNavigationState?.currentItem?.let { item ->
-                onSelection?.invoke(item)
-                dismiss()
+                dispatchSelection(item)
             }
         }
         if (currentNavigationStack.isEmpty()) {
@@ -236,8 +251,7 @@ class MagicVariablePickerSheet : BottomSheetDialogFragment() {
 
         if (properties.isEmpty()) {
             // 如果没有匹配的属性，则直接使用变量本身
-            onSelection?.invoke(item)
-            dismiss()
+            dispatchSelection(item)
         } else {
             openNavigationSheet(
                 mutableListOf(
@@ -253,6 +267,20 @@ class MagicVariablePickerSheet : BottomSheetDialogFragment() {
 
     private fun buildPropertyVariableName(item: MagicVariableItem, propertyName: String): String {
         return getString(R.string.magic_variable_property_name, item.variableName, propertyName)
+    }
+
+    private fun renderVariableLabel(label: CharSequence): CharSequence {
+        return PillRenderer.renderToSpannable(
+            rawText = label.toString(),
+            mode = PillRenderer.RenderMode.PREVIEW,
+            allSteps = currentAllSteps,
+            context = requireContext()
+        )
+    }
+
+    private fun dispatchSelection(item: MagicVariableItem) {
+        onInlineVariableSelection?.invoke(item) ?: onSelection?.invoke(item)
+        dismiss()
     }
 
     private fun showRootList() {
@@ -310,7 +338,7 @@ class MagicVariablePickerSheet : BottomSheetDialogFragment() {
             }
             breadcrumbContainer.addView(
                 createBreadcrumbChip(
-                    crumb.label,
+                    renderVariableLabel(crumb.label),
                     selected = index == currentNavigationStack.lastIndex
                 ) {
                     currentNavigationStack = currentNavigationStack.take(index + 1).toMutableList()
@@ -338,7 +366,7 @@ class MagicVariablePickerSheet : BottomSheetDialogFragment() {
     }
 
     private fun renderCurrentPathCard(item: MagicVariableItem?) {
-        currentPathTitle.text = item?.variableName ?: getString(R.string.desc_select_variable)
+        currentPathTitle.text = item?.variableName?.let(::renderVariableLabel) ?: getString(R.string.desc_select_variable)
         currentPathSubtitle.text = item?.originDescription ?: getString(R.string.magic_variable_navigation_hint)
     }
 
@@ -413,8 +441,7 @@ class MagicVariablePickerSheet : BottomSheetDialogFragment() {
                     }
                     openNavigationSheet(nextStack)
                 } else {
-                    onSelection?.invoke(propertyItem.nextItem)
-                    dismiss()
+                    dispatchSelection(propertyItem.nextItem)
                 }
             },
             onActionClick = { action ->
@@ -434,6 +461,7 @@ class MagicVariablePickerSheet : BottomSheetDialogFragment() {
                     variableReference = newRef,
                     variableName = when (action) {
                         is ActionNode.PromptStringIndex -> "${sourceItem.variableName}[$rawValue]"
+                        is ActionNode.PromptListIndex -> "${sourceItem.variableName}[$rawValue]"
                         else -> "${sourceItem.variableName}.$rawValue"
                     },
                     originDescription = when (action) {
@@ -450,22 +478,50 @@ class MagicVariablePickerSheet : BottomSheetDialogFragment() {
 
                 val crumbLabel = when (action) {
                     is ActionNode.PromptStringIndex -> "[$rawValue]"
+                    is ActionNode.PromptListIndex -> "[$rawValue]"
                     else -> rawValue
                 }
                 val nextStack = currentNavigationStack.toMutableList().apply {
                     add(NavigationCrumb(crumbLabel, newItem))
                 }
                 openNavigationSheet(nextStack)
-            }
+            },
+            onInlineVariableRequested = { input ->
+                openInlineVariableSheet { selected ->
+                    val reference = VariablePathParser.canonicalizeNamedVariableReference(selected.variableReference)
+                    input.insertVariablePill(reference)
+                }
+            },
+            allSteps = currentAllSteps
         )
     }
 
+    private fun openInlineVariableSheet(onSelected: (MagicVariableItem) -> Unit) {
+        val picker = newInstance(
+            stepVariables = currentStepVariables,
+            namedVariables = currentNamedVariables,
+            acceptsMagicVariable = true,
+            acceptsNamedVariable = true,
+            acceptedMagicVariableTypes = emptySet(),
+            enableTypeFilter = false,
+            allowClear = false,
+            allSteps = currentAllSteps
+        ).apply {
+            onInlineVariableSelection = onSelected
+        }
+        picker.show(parentFragmentManager, "MagicVariablePickerSheet.inline")
+    }
+
     private fun createBreadcrumbChip(
-        label: String,
+        label: CharSequence,
         selected: Boolean,
         onClick: () -> Unit
     ): Chip {
         return (layoutInflater.inflate(R.layout.chip_filter, breadcrumbContainer, false) as Chip).apply {
+            layoutParams = LinearLayout.LayoutParams(
+                LinearLayout.LayoutParams.WRAP_CONTENT,
+                LinearLayout.LayoutParams.WRAP_CONTENT
+            )
             text = label
             isCheckable = false
             isClickable = true
@@ -490,11 +546,23 @@ class MagicVariablePickerSheet : BottomSheetDialogFragment() {
     }
 
     private fun openNavigationSheet(stack: MutableList<NavigationCrumb>) {
-        val nextSheet = MagicVariablePickerSheet().apply {
+        @Suppress("UNCHECKED_CAST")
+        val acceptedTypes = arguments?.getSerializable("acceptedTypes") as? Set<String> ?: emptySet()
+        val nextSheet = newInstance(
+            stepVariables = currentStepVariables,
+            namedVariables = currentNamedVariables,
+            acceptsMagicVariable = arguments?.getBoolean("acceptsMagic", true) ?: true,
+            acceptsNamedVariable = arguments?.getBoolean("acceptsNamed", true) ?: true,
+            acceptedMagicVariableTypes = acceptedTypes,
+            enableTypeFilter = arguments?.getBoolean("enableTypeFilter", false) ?: false,
+            allowClear = arguments?.getBoolean("allowClear", true) ?: true,
+            allSteps = currentAllSteps
+        ).apply {
             arguments = Bundle(arguments ?: Bundle()).apply {
                 putParcelableArrayList(ARG_NAVIGATION_STACK, ArrayList(stack))
             }
             onSelection = this@MagicVariablePickerSheet.onSelection
+            onInlineVariableSelection = this@MagicVariablePickerSheet.onInlineVariableSelection
         }
         nextSheet.show(parentFragmentManager, "MagicVariablePickerSheet.nav")
         dismissAllowingStateLoss()
@@ -547,7 +615,9 @@ private class MagicVariableNavigationAdapter(
     private val items: List<NavigationListItem>,
     private val onPropertyClick: (NavigationListItem.PropertyEntry) -> Unit,
     private val onActionClick: (ActionNode) -> Unit,
-    private val onActionConfirm: (ActionNode, String) -> Unit
+    private val onActionConfirm: (ActionNode, String) -> Unit,
+    private val onInlineVariableRequested: (RichTextView) -> Unit,
+    private val allSteps: List<ActionStep>
 ) : RecyclerView.Adapter<RecyclerView.ViewHolder>() {
 
     private companion object {
@@ -570,7 +640,7 @@ private class MagicVariableNavigationAdapter(
         return when (viewType) {
             TYPE_HEADER -> HeaderViewHolder(inflater.inflate(R.layout.item_magic_variable_group, parent, false))
             TYPE_PROPERTY -> PropertyViewHolder(inflater.inflate(R.layout.item_magic_variable, parent, false), onPropertyClick)
-            else -> ActionViewHolder(inflater.inflate(R.layout.item_magic_variable_expandable_action, parent, false), onActionClick, onActionConfirm)
+            else -> ActionViewHolder(inflater.inflate(R.layout.item_magic_variable_expandable_action, parent, false), onActionClick, onActionConfirm, onInlineVariableRequested, allSteps)
         }
     }
 
@@ -612,13 +682,16 @@ private class MagicVariableNavigationAdapter(
     private class ActionViewHolder(
         view: View,
         private val onActionClick: (ActionNode) -> Unit,
-        private val onActionConfirm: (ActionNode, String) -> Unit
+        private val onActionConfirm: (ActionNode, String) -> Unit,
+        private val onInlineVariableRequested: (RichTextView) -> Unit,
+        private val allSteps: List<ActionStep>
     ) : RecyclerView.ViewHolder(view) {
         private val nameView: TextView = view.findViewById(R.id.variable_name)
         private val subtitleView: TextView = view.findViewById(R.id.variable_origin)
         private val header: View = view.findViewById(R.id.layout_action_header)
         private val expandableContent: View = view.findViewById(R.id.layout_expandable_content)
-        private val input: com.google.android.material.textfield.TextInputEditText = view.findViewById(R.id.edit_inline_input)
+        private val inputLayout: TextInputLayout = view.findViewById(R.id.layout_inline_input)
+        private val input: RichTextView = view.findViewById(R.id.edit_inline_input)
         private val cancelButton: MaterialButton = view.findViewById(R.id.button_inline_cancel)
         private val confirmButton: MaterialButton = view.findViewById(R.id.button_inline_confirm)
 
@@ -636,7 +709,11 @@ private class MagicVariableNavigationAdapter(
             if (!item.expanded) {
                 input.text?.clear()
             } else {
+                input.setRichText(input.text?.toString().orEmpty(), allSteps)
                 input.requestFocus()
+            }
+            inputLayout.setEndIconOnClickListener {
+                onInlineVariableRequested(input)
             }
             cancelButton.setOnClickListener { onActionClick(item.action) }
             confirmButton.setOnClickListener {

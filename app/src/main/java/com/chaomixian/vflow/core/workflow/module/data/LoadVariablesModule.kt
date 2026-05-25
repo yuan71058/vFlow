@@ -2,10 +2,10 @@ package com.chaomixian.vflow.core.workflow.module.data
 
 import com.chaomixian.vflow.R
 import com.chaomixian.vflow.core.execution.ExecutionContext
+import com.chaomixian.vflow.core.execution.VariableResolver
 import com.chaomixian.vflow.core.module.*
 import com.chaomixian.vflow.core.types.VObject
 import com.chaomixian.vflow.core.types.VObjectFactory
-import com.chaomixian.vflow.core.types.parser.VariablePathParser
 import com.chaomixian.vflow.core.workflow.WorkflowManager
 import com.chaomixian.vflow.core.workflow.model.Workflow
 
@@ -125,18 +125,8 @@ class LoadVariablesModule : BaseModule() {
         if (rawValue != null) {
             return when (rawValue) {
                 is String -> {
-                    if (VariablePathParser.parseGlobalVariablePath(rawValue) != null) {
-                        val globalPath = VariablePathParser.parseGlobalVariablePath(rawValue) ?: emptyList()
-                        val globalName = globalPath.firstOrNull() ?: return null
-                        context.getGlobalVariable(globalName)
-                    } else if (rawValue.isMagicVariable()) {
-                        context.getVariable(VariablePathParser.parseVariableReference(rawValue).joinToString("."))
-                    } else if (rawValue.isNamedVariable()) {
-                        val variablePath = VariablePathParser.parseNamedVariablePath(rawValue) ?: emptyList()
-                        context.getVariable(variablePath.joinToString("."))
-                    } else {
-                        VObjectFactory.from(rawValue)
-                    }
+                    VariableResolver.resolveSingleVariableReference(rawValue, context)
+                        ?: VObjectFactory.from(rawValue)
                 }
                 else -> VObjectFactory.from(rawValue)
             }

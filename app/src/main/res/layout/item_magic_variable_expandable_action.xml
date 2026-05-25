@@ -61,14 +61,19 @@
         android:visibility="gone">
 
         <com.google.android.material.textfield.TextInputLayout
+            android:id="@+id/layout_inline_input"
             android:layout_width="match_parent"
             android:layout_height="wrap_content"
-            android:layout_marginTop="4dp">
+            android:layout_marginTop="4dp"
+            app:endIconContentDescription="@string/desc_select_magic_variable"
+            app:endIconDrawable="@drawable/rounded_dataset_24"
+            app:endIconMode="custom">
 
-            <com.google.android.material.textfield.TextInputEditText
+            <com.chaomixian.vflow.ui.workflow_editor.RichTextView
                 android:id="@+id/edit_inline_input"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
+                android:inputType="textMultiLine"
                 tools:text="0" />
         </com.google.android.material.textfield.TextInputLayout>
 
