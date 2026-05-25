@@ -182,16 +182,24 @@
 -keepclassmembers class org.opencv.** { *; }
 -dontwarn org.opencv.**
 
-# 26. Sherpa-ncnn JNI 通过固定字段名读取 Kotlin 配置对象
+# 26. PP-OCRv5 JNI / Gson bridge
+# PpOcrV5Native is called by static JNI symbol names, and Gson fills the
+# PpOcrV5NativeResponse data classes by field name.
+-keep class com.chaomixian.vflow.ocr.** { *; }
+-keepclasseswithmembernames class * {
+    native <methods>;
+}
+
+# 27. Sherpa-ncnn JNI 通过固定字段名读取 Kotlin 配置对象
 # release 混淆改名后会在 GetObjectField 时出现 fid == null
 -keep class com.k2fsa.sherpa.ncnn.** { *; }
 
-# 27. ONNX Runtime JNI 会按固定签名反射/构造 Java 类型
+# 28. ONNX Runtime JNI 会按固定签名反射/构造 Java 类型
 # release 混淆 ai.onnxruntime 包后会在 NodeInfo/ValueInfo 等桥接类型上触发 NoSuchMethodError
 -keep class ai.onnxruntime.** { *; }
 -keep interface ai.onnxruntime.** { *; }
 
-# 28. Netty / Reactor / Lettuce 可选依赖 (Android 不需要)
+# 29. Netty / Reactor / Lettuce 可选依赖 (Android 不需要)
 -dontwarn io.netty.util.internal.logging.Log4J**
 -dontwarn io.netty.util.internal.logging.Log4J2**
 -dontwarn io.netty.util.internal.Hidden$NettyBlockHoundIntegration
@@ -203,7 +211,7 @@
 -dontwarn org.apache.log4j.**
 -dontwarn org.apache.logging.log4j.**
 
-# 29. Umeng analytics / ASMS
+# 30. Umeng analytics / ASMS
 -keepclassmembers class * {
    public <init>(org.json.JSONObject);
 }
